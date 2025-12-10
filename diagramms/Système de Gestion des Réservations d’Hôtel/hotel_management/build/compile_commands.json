@@ -1,0 +1,80 @@
+[
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\main.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\main.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/main.c",
+  "output": "CMakeFiles/hotel_management.dir/main.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\menu.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\menu.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/menu.c",
+  "output": "CMakeFiles/hotel_management.dir/menu.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\clients.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\clients.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/clients.c",
+  "output": "CMakeFiles/hotel_management.dir/clients.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\chambres.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\chambres.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/chambres.c",
+  "output": "CMakeFiles/hotel_management.dir/chambres.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\reservations.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\reservations.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/reservations.c",
+  "output": "CMakeFiles/hotel_management.dir/reservations.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\facturation.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\facturation.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/facturation.c",
+  "output": "CMakeFiles/hotel_management.dir/facturation.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\fichiers.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\fichiers.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/fichiers.c",
+  "output": "CMakeFiles/hotel_management.dir/fichiers.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\validation.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\validation.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/validation.c",
+  "output": "CMakeFiles/hotel_management.dir/validation.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\authentication.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\authentication.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/authentication.c",
+  "output": "CMakeFiles/hotel_management.dir/authentication.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\notifications.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\notifications.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/notifications.c",
+  "output": "CMakeFiles/hotel_management.dir/notifications.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\ui_theme.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\ui_theme.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/ui_theme.c",
+  "output": "CMakeFiles/hotel_management.dir/ui_theme.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\sha256.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\sha256.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/sha256.c",
+  "output": "CMakeFiles/hotel_management.dir/sha256.c.obj"
+},
+{
+  "directory": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\cc.exe  @CMakeFiles/hotel_management.dir/includes_C.rsp -std=gnu11 -o CMakeFiles\\hotel_management.dir\\nuklear_impl.c.obj -c \"C:\\Users\\yazid\\OneDrive\\Bureau\\mini_project_C\\Système de Gestion des Réservations d’Hôtel\\hotel_management\\nuklear_impl.c\"",
+  "file": "C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/nuklear_impl.c",
+  "output": "CMakeFiles/hotel_management.dir/nuklear_impl.c.obj"
+}
+]
