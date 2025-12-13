@@ -1,0 +1,6 @@
+- [x] Create include/ and src/ directories
+- [x] Move structures.h to include/
+- [x] Move fichiers.h to include/
+- [x] Create empty .h files in include/: clients.h, chambres.h, reservations.h, facturation.h, menu.h, utils.h
+- [x] Create empty .c files in src/: clients.c, chambres.c, reservations.c, facturation.c, menu.c, utils.c, fichiers.c
+- [x] Create empty Makefile in root
