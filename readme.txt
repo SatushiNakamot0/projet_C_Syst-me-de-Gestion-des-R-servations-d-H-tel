@@ -8,7 +8,7 @@ hotel_management/
 ├── clients.h/.c             # gestion des clients 
 ├── chambres.h/.c            # Module gestion chambres
 ├── reservations.h/.c        # Module gestion réservations
-├── facturation.h/.c         # kaoutar ghatkhdem 3la haada
+├── facturation.h/.c         #  Module de gestion de facturation kaoutar ghatkhdem 3la haada
 ├── menu.h/.c                # Interface console
 ├── validation.h/.c          # Validation des données
 │
