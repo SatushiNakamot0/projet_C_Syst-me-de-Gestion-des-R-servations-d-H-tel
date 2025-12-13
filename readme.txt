@@ -5,7 +5,7 @@ hotel_management/
 ├── main.c                    # Programme principal
 ├── structures.h              # Définitions des structures
 ├── fichiers.h/.c            # Gestion des fichiers
-├── clients.h/.c             # gestion des clients 
+├── clients.h/.c             # gestion des clients Dounia atkhdem ela hd 
 ├── chambres.h/.c            # Module gestion chambres
 ├── reservations.h/.c        # Module gestion réservations
 ├── facturation.h/.c         #  Module de gestion de facturation kaoutar ghatkhdem 3la haada
