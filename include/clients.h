@@ -13,8 +13,5 @@ void modifier_client(Client clients[], int count);
 
 void supprimer_client(Client clients[], int *count);
 
-// **N'oubliez pas les sauvegardes !**
-// Vous devrez appeler une fonction de sauvegarde après ajout/modification/suppression.
-// Cette fonction est dans fichiers.h (ex: sauvegarder_clients(clients, *count))
 
 #endif
