@@ -15,4 +15,3 @@ void supprimer_client(Client clients[], int *count);
 
 
 #endif
-// Vous devrez appeler une fonction de sauvegarde après ajout/modification/suppression.
