@@ -34,7 +34,7 @@ typedef struct
     float montant;
 } Reservation;
 
-typedef struct
+typedef struct Facture
 {
     int idFacture;
     int idClient;
