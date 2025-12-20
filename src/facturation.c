@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "facturation.h"
-#include "clients.h"
 #include "structures.h"
 
 /* Calcul du montant total */

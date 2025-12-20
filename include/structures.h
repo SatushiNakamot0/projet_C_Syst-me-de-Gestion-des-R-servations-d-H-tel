@@ -1,6 +1,12 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
+/* Constantes pour les limites */
+#define MAX_CLIENTS 100
+#define MAX_CHAMBRES 50
+#define MAX_RESERVATIONS 100
+#define MAX_FACTURES 100
+
 typedef struct
 {
     int id;
@@ -30,10 +36,11 @@ typedef struct
 
 typedef struct
 {
-    int id;
-    int reservation_id;
-    float montant_total;
-    char date_facturation[11];
+    int idFacture;
+    int idClient;
+    int nbNuits;
+    float prixNuit;
+    float total;
 } Facture;
 
 #endif

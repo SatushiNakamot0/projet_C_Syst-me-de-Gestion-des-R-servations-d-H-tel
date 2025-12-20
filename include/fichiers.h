@@ -1,6 +1,8 @@
 #ifndef FICHIERS_H
 #define FICHIERS_H
 
+#include "structures.h"
+
 // Prototypes for file management functions
 void sauvegarder_clients(Client *clients, int count);
 void charger_clients(Client *clients, int *count);
