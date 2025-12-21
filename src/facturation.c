@@ -10,13 +10,21 @@ float calculer_total(int nbNuits, float prixNuit) {
     return nbNuits * prixNuit;
 }
 
+/* Fonction pour récupérer le nom complet du client */
+void get_nom_client(int idClient, const Client clients[], int nbClients, char *nom, char *prenom) {
+    strcpy(nom, "Inconnu");
+    strcpy(prenom, "");
+    for (int i = 0; i < nbClients; i++) {
+        if (clients[i].id == idClient) {
+            strcpy(nom, clients[i].nom);
+            strcpy(prenom, clients[i].prenom);
+            break;
+        }
+    }
+}
+
 /* Création d'une facture */
 void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients) {
-    Facture nouvelle_facture;
-    int id_client;
-    int client_trouve = 0;
-    int max_id = 0;
-
     if (*count >= MAX_FACTURES) {
         printf("\nErreur : Limite de factures atteinte.\n");
         return;
@@ -27,9 +35,20 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
         return;
     }
 
+    Facture nouvelle_facture;
+    int id_client;
+    int client_trouve = 0;
+    int max_id = 0;
+
     printf("\n--- CREATION D'UNE FACTURE ---\n");
+
+    // Saisie ID client
     printf("Entrez l'ID du client : ");
-    if (scanf("%d", &id_client) != 1) return;
+    if (scanf("%d", &id_client) != 1) {
+        printf("Erreur : saisie invalide.\n");
+        while(getchar() != '\n');
+        return;
+    }
 
     for (int i = 0; i < nbClients; i++) {
         if (clients[i].id == id_client) {
@@ -43,28 +62,38 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
         return;
     }
 
+    // Saisie nombre de nuits
     printf("Nombre de nuits : ");
-    scanf("%d", &nouvelle_facture.nbNuits);
+    if (scanf("%d", &nouvelle_facture.nbNuits) != 1 || nouvelle_facture.nbNuits <= 0) {
+        printf("Erreur : nombre de nuits invalide.\n");
+        while(getchar() != '\n');
+        return;
+    }
 
+    // Saisie prix par nuit
     printf("Prix par nuit : ");
-    scanf("%f", &nouvelle_facture.prixNuit);
+    if (scanf("%f", &nouvelle_facture.prixNuit) != 1 || nouvelle_facture.prixNuit <= 0) {
+        printf("Erreur : prix par nuit invalide.\n");
+        while(getchar() != '\n');
+        return;
+    }
 
-    nouvelle_facture.total = calculer_total(
-        nouvelle_facture.nbNuits,
-        nouvelle_facture.prixNuit
-    );
+    // Calcul du total
+    nouvelle_facture.total = calculer_total(nouvelle_facture.nbNuits, nouvelle_facture.prixNuit);
 
+    // Calcul ID facture
     for (int i = 0; i < *count; i++) {
         if (factures[i].idFacture > max_id)
             max_id = factures[i].idFacture;
     }
-
     nouvelle_facture.idFacture = max_id + 1;
     nouvelle_facture.idClient = id_client;
 
+    // Ajout de la facture au tableau
     factures[*count] = nouvelle_facture;
     (*count)++;
 
+    // Sauvegarde dans le fichier
     sauvegarder_factures(factures, *count);
 
     printf("\nFacture creee avec succes (ID Facture: %d)\n", nouvelle_facture.idFacture);
@@ -82,16 +111,8 @@ void afficher_factures(const Facture factures[], int count, const Client clients
     printf("================================================================================\n");
 
     for (int i = 0; i < count; i++) {
-        const char *nom = "Inconnu";
-        const char *prenom = "";
-
-        for (int j = 0; j < nbClients; j++) {
-            if (clients[j].id == factures[i].idClient) {
-                nom = clients[j].nom;
-                prenom = clients[j].prenom;
-                break;
-            }
-        }
+        char nom[50], prenom[50];
+        get_nom_client(factures[i].idClient, clients, nbClients, nom, prenom);
 
         printf("Facture ID: %d | Client: %s %s | Nuits: %d | Prix/Nuit: %.2f | Total: %.2f\n",
                factures[i].idFacture,
@@ -105,10 +126,10 @@ void afficher_factures(const Facture factures[], int count, const Client clients
     printf("================================================================================\n");
 }
 
-/* Sauvegarde des factures */
+/* Sauvegarde des factures dans un fichier */
 void sauvegarder_factures(const Facture factures[], int count) {
-    FILE *f = fopen("factures.txt", "w");
-    if (f == NULL) {
+    FILE *f = fopen("factures.txt", "w"); // écrase le fichier à chaque sauvegarde
+    if (!f) {
         printf("Erreur ouverture fichier factures.\n");
         return;
     }

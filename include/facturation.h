@@ -1,21 +1,31 @@
 #ifndef FACTURATION_H
 #define FACTURATION_H
 
-#define MAX_FACTURE 100
+#include "structures.h"  // pour la structure Client et Facture
 
-/* Structure représentant une facture */
+#define MAX_FACTURES 100  // Nombre maximum de factures
+
+// Structure représentant une facture
 typedef struct {
-int numeroFacture;
-char nomClient[50];
-int nbNuits;
-float prixNuit;
-float total;
+    int idFacture;     // Identifiant unique de la facture
+    int idClient;      // Référence au client (via son ID)
+    int nbNuits;       // Nombre de nuits
+    float prixNuit;    // Prix par nuit
+    float total;       // Montant total
 } Facture;
 
 /* Prototypes des fonctions */
-float calculerTotal(int nbNuits, float prixNuit);
-void creerFacture(Facture *f);
-void afficherFacture(Facture f);
-void enregistrerFacture(Facture f);
+
+// Calcul du total d'une facture
+float calculer_total(int nbNuits, float prixNuit);
+
+// Création d'une facture et ajout dans le tableau
+void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients);
+
+// Affichage des factures
+void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients);
+
+// Sauvegarde des factures dans un fichier texte
+void sauvegarder_factures(const Facture factures[], int count);
 
 #endif
