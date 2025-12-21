@@ -102,6 +102,17 @@ typedef struct {
     char dialog_message[256];
     int dialog_result;            /* User's choice in dialog */
     
+    /* Form input state */
+    int current_field;           /* Index of current form field */
+    char** field_values;         /* Array of form field values */
+    int num_fields;              /* Number of fields in current form */
+    int max_field_length;        /* Maximum length for current field */
+    int field_x, field_y;        /* Position of current field on screen */
+    
+    /* Input mode flags */
+    bool in_input_mode;          /* Whether we're in text input mode */
+    bool input_modified;         /* Whether input has been modified */
+    
 } UIContext;
 
 /* Function pointer type for state handlers */

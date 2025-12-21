@@ -6,6 +6,7 @@
 #include "../include/chambres.h"
 #include "../include/reservations.h"
 #include "../include/facturation.h"
+#include "../include/room.h"
 
 /* Global variables */
 Client clients[MAX_CLIENTS];
@@ -71,10 +72,10 @@ void gerer_menu_chambres() {
         
         switch(choix) {
             case 1:
-                printf("Ajout d'une chambre\n");
+                add_room();  // Hna kan-ajoutiw l-chambre b module jdid
                 break;
             case 2:
-                printf("Affichage des chambres\n");
+                list_rooms();  // Hna kan-affichiw les chambres
                 break;
             case 0:
                 printf("Retour au menu principal.\n");

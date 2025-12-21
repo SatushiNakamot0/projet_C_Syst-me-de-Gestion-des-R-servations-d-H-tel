@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/debug.h"
 
 /* ============================================================================
  * FILE MANAGEMENT IMPLEMENTATION
@@ -10,19 +11,36 @@
  * ============================================================================ */
 
 void sauvegarder_clients(Client *clients, int count) {
+    LOG_INFO("Attempting to save %d clients to file", count);
+    
     FILE *f = fopen("data/clients.dat", "wb");
     if (!f) {
+        LOG_ERROR("Could not open data/clients.dat for writing");
         /* Try creating directory and file */
         system("mkdir -p data 2>/dev/null");
         f = fopen("data/clients.dat", "wb");
-        if (!f) return;
+        if (!f) {
+            LOG_ERROR("Failed to create directory and file");
+            return;
+        }
     }
     
-    fwrite(&count, sizeof(int), 1, f);
-    if (count > 0 && clients) {
-        fwrite(clients, sizeof(Client), count, f);
+    if (fwrite(&count, sizeof(int), 1, f) != 1) {
+        LOG_ERROR("Failed to write client count to file");
+        fclose(f);
+        return;
     }
+    
+    if (count > 0 && clients) {
+        if (fwrite(clients, sizeof(Client), count, f) != count) {
+            LOG_ERROR("Failed to write client data to file");
+            fclose(f);
+            return;
+        }
+    }
+    
     fclose(f);
+    LOG_INFO("Successfully saved %d clients to file", count);
 }
 
 void charger_clients(Client *clients, int *count) {

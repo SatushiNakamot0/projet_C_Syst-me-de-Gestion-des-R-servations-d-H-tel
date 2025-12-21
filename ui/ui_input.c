@@ -67,10 +67,7 @@ void ui_input_process_form_input(UIContext *ctx, int key) {
 NavDirection ui_input_process_key(UIContext *ctx, int key) {
     /* Handle form input mode */
     if (ctx->input_mode == 1 || ctx->input_mode == 2) {
-        if (key == '\n' || key == KEY_ENTER) {
-            ctx->input_mode = 0;
-            return NAV_SELECT;
-        } else if (key == 27) { /* ESC */
+        if (key == 27) { /* ESC */
             ctx->input_mode = 0;
             ctx->input_buffer[0] = '\0';
             ctx->input_cursor_pos = 0;
