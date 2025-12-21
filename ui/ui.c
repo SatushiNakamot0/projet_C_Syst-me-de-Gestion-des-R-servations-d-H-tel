@@ -11,6 +11,7 @@
 #endif
 #include "ui_input.h"
 #include "ui_utils.h"
+ #include "../include/debug.h"
 #include "../include/fichiers.h"
 #include "../include/clients.h"
 #include "../include/facturation.h"
@@ -23,15 +24,15 @@
 /* ============================================================================
  * MAIN UI IMPLEMENTATION
  * ============================================================================
- * State machine and main UI loop. Coordinates all UI components.
+ * State machine w l-loop l-kbir dyal l-UI. Kaynssaq kolchi dyal UI components.
  * ============================================================================ */
 
 static UIContext *g_ctx = NULL;
 static bool g_running = false;
 
-/* Signal handler for window resize */
+/* Handler dyal signal باش ila تبدلات taille dyal l-window */
 static void handle_resize(int sig) {
-    (void)sig; /* Unused parameter */
+    (void)sig; /* parameter ma msta3mlinch */
     if (g_ctx) {
         int rows, cols;
         getmaxyx(stdscr, rows, cols);
@@ -40,7 +41,7 @@ static void handle_resize(int sig) {
     }
 }
 
-/* State handler function declarations */
+/* Declarations dyal state handlers */
 static void state_draw_dashboard(UIContext *ctx);
 static NavDirection state_handle_dashboard(UIContext *ctx, int key);
 static void state_cleanup_dashboard(UIContext *ctx);
@@ -65,7 +66,7 @@ static void state_draw_help(UIContext *ctx);
 static NavDirection state_handle_help(UIContext *ctx, int key);
 static void state_cleanup_help(UIContext *ctx);
 
-/* State handler table */
+/* Tableau dyal state handlers */
 static const StateHandler state_handlers[] = {
     [UI_STATE_DASHBOARD] = {
         .draw = state_draw_dashboard,
@@ -105,10 +106,13 @@ static const StateHandler state_handlers[] = {
     }
 };
 
-/* UIContext implementation */
+/* Implementation dyal UIContext */
 UIContext* ui_context_create(void) {
     UIContext *ctx = calloc(1, sizeof(UIContext));
-    if (!ctx) return NULL;
+    if (!ctx) {
+        LOG_ERROR("Out of memory: failed to allocate UIContext");
+        return NULL;
+    }
     
     ctx->current_state = UI_STATE_DASHBOARD;
     ctx->previous_state = UI_STATE_DASHBOARD;
@@ -121,20 +125,35 @@ UIContext* ui_context_create(void) {
     ctx->dialog_active = false;
     ctx->needs_redraw = true;
     
-    /* Allocate data arrays */
+    /* Kan-allociw arrays dyal data */
     ctx->clients_capacity = MAX_CLIENTS;
     ctx->clients = calloc(ctx->clients_capacity, sizeof(Client));
+    if (!ctx->clients) {
+        LOG_ERROR("Out of memory: failed to allocate clients array (capacity=%d)", ctx->clients_capacity);
+        ui_context_destroy(ctx);
+        return NULL;
+    }
     
     ctx->chambres_capacity = MAX_CHAMBRES;
     ctx->chambres = calloc(ctx->chambres_capacity, sizeof(Chambre));
+    if (!ctx->chambres) {
+        LOG_ERROR("Out of memory: failed to allocate chambres array (capacity=%d)", ctx->chambres_capacity);
+        ui_context_destroy(ctx);
+        return NULL;
+    }
     
     ctx->reservations_capacity = MAX_RESERVATIONS;
     ctx->reservations = calloc(ctx->reservations_capacity, sizeof(Reservation));
+    if (!ctx->reservations) {
+        LOG_ERROR("Out of memory: failed to allocate reservations array (capacity=%d)", ctx->reservations_capacity);
+        ui_context_destroy(ctx);
+        return NULL;
+    }
     
     ctx->factures_capacity = MAX_FACTURES;
     ctx->factures = calloc(ctx->factures_capacity, sizeof(Facture));
-    
-    if (!ctx->clients || !ctx->chambres || !ctx->reservations || !ctx->factures) {
+    if (!ctx->factures) {
+        LOG_ERROR("Out of memory: failed to allocate factures array (capacity=%d)", ctx->factures_capacity);
         ui_context_destroy(ctx);
         return NULL;
     }
@@ -157,13 +176,13 @@ void ui_context_resize(UIContext *ctx, int rows, int cols) {
     if (!ctx) return;
     ctx->term_rows = rows;
     ctx->term_cols = cols;
-    ctx->max_visible_items = rows - 8; /* Account for headers/footers */
+    ctx->max_visible_items = rows - 8; /* Kan7sbo l-headers/footers */
 }
 
 bool ui_context_load_data(UIContext *ctx) {
     if (!ctx) return false;
     
-    /* Load all data using fichiers module */
+    /* Kan-chargiw ga3 data b module dyal fichiers */
     charger_clients(ctx->clients, &ctx->clients_count);
     charger_chambres(ctx->chambres, &ctx->chambres_count);
     charger_reservations(ctx->reservations, &ctx->reservations_count);
@@ -236,7 +255,7 @@ static void state_draw_clients(UIContext *ctx) {
 static NavDirection state_handle_clients(UIContext *ctx, int key) {
     NavDirection dir = ui_input_process_key(ctx, key);
     
-    /* Handle sidebar navigation */
+    /* Navigation f sidebar */
     if (dir == NAV_UP || dir == NAV_DOWN) {
         if (dir == NAV_UP && ctx->selected_menu_item > 0) {
             ctx->selected_menu_item--;
@@ -247,7 +266,7 @@ static NavDirection state_handle_clients(UIContext *ctx, int key) {
         return NAV_NONE;
     }
     
-    /* Handle list navigation */
+    /* Navigation f list */
     if (key == KEY_UP && ctx->selected_list_item > 0) {
         ctx->selected_list_item--;
         if (ctx->selected_list_item < ctx->scroll_offset) {
@@ -262,7 +281,7 @@ static NavDirection state_handle_clients(UIContext *ctx, int key) {
         ctx->needs_redraw = true;
     }
     
-    /* Handle actions */
+    /* Actions */
     if (key == 'a' || key == 'A') {
         ctx->current_state = UI_STATE_CLIENTS_ADD;
         ctx->needs_redraw = true;
@@ -343,7 +362,7 @@ static NavDirection state_handle_rooms(UIContext *ctx, int key) {
         }
     } else if (key == 'd' || key == 'D') {
         if (ctx->selected_list_item < ctx->chambres_count) {
-            /* Delete room - would trigger confirmation dialog */
+            /* Delete room - khas dialog dyal confirmation */
             ctx->needs_redraw = true;
         }
     } else if (key == 's' || key == 'S') {
@@ -413,7 +432,7 @@ static NavDirection state_handle_reservations(UIContext *ctx, int key) {
         }
     } else if (key == 'c' || key == 'C') {
         if (ctx->selected_list_item < ctx->reservations_count) {
-            /* Cancel reservation - would trigger confirmation dialog */
+            /* Cancel reservation - khas dialog dyal confirmation */
             ctx->needs_redraw = true;
         }
     } else if (dir == NAV_BACK) {
@@ -485,37 +504,43 @@ static void state_cleanup_help(UIContext *ctx) {
 
 /* Main UI functions */
 bool ui_init(UIContext *ctx) {
-    if (!ctx) return false;
-    
-    g_ctx = ctx;
-    
-    /* Initialize ncurses */
-    initscr();
-    if (!stdscr) {
+    if (!ctx) {
+        LOG_ERROR("ui_init called with NULL ctx");
         return false;
     }
     
-    /* Get terminal size */
+    g_ctx = ctx;
+    LOG_DEBUG("UI init start (state=%d)", (int)ctx->current_state);
+    
+    /* Kan-initializiw ncurses */
+    initscr();
+    if (!stdscr) {
+        LOG_ERROR("ncurses initialization failed: stdscr is NULL");
+        return false;
+    }
+    
+    /* Kanجيبّو taille dyal terminal */
     getmaxyx(stdscr, ctx->term_rows, ctx->term_cols);
     ui_context_resize(ctx, ctx->term_rows, ctx->term_cols);
     
-    /* Setup ncurses */
+    /* Setup dyal ncurses */
     cbreak();
     noecho();
-    curs_set(0); /* Hide cursor */
+    curs_set(0); /* Kan-khbbiw cursor */
     ui_input_init();
     ui_theme_init();
     
-    /* Setup resize handler */
+    /* Setup dyal resize handler */
 #ifndef _WIN32
     signal(SIGWINCH, handle_resize);
 #else
-    /* On Windows, we'll handle resizing in the main loop */
+    /* F Windows, ghadi n-handliw resizing f main loop */
     SetConsoleCtrlHandler(NULL, FALSE);
 #endif
     
-    /* Load data */
+    /* Kan-chargiw data */
     ui_context_load_data(ctx);
+    LOG_DEBUG("UI init complete (rows=%d cols=%d)", ctx->term_rows, ctx->term_cols);
     
     return true;
 }
@@ -531,16 +556,20 @@ static BOOL WINAPI consoleHandler(DWORD signal) {
 #endif
 
 void ui_run(UIContext *ctx) {
-    if (!ctx) return;
+    if (!ctx) {
+        LOG_ERROR("ui_run called with NULL ctx");
+        return;
+    }
     
     g_running = true;
+    LOG_INFO("UI loop start");
     Layout layout;
     
 #ifdef _WIN32
-    /* Set up console handler for Windows */
+    /* Set up console handler f Windows */
     SetConsoleCtrlHandler(consoleHandler, TRUE);
     
-    /* Get initial console size */
+    /* Kanجيبّو taille l-oula dyal console */
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
     ctx->term_cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
@@ -550,7 +579,7 @@ void ui_run(UIContext *ctx) {
     
     while (g_running && ctx->current_state != UI_STATE_EXIT) {
 #ifdef _WIN32
-        /* Check for window resize on Windows */
+        /* Kan-checkiw window resize f Windows */
         GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
         int new_cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
         int new_rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
@@ -563,10 +592,10 @@ void ui_run(UIContext *ctx) {
         }
 #endif
         
-        /* Calculate layout */
+        /* Kan7sbo layout */
         ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
         
-        /* Draw current state */
+        /* Kan-drawiw state l-haliya */
         if (ctx->needs_redraw || ctx->current_state != ctx->previous_state) {
             clear();
             
@@ -580,7 +609,7 @@ void ui_run(UIContext *ctx) {
             ctx->previous_state = ctx->current_state;
         }
         
-        /* Process input */
+        /* Kan-traitiw input */
         int key = ui_input_get_key();
         if (key != ERR) {
             UIState state = ctx->current_state;
@@ -592,24 +621,28 @@ void ui_run(UIContext *ctx) {
             }
         }
         
-        /* Small delay to prevent CPU spinning */
+        /* Delay sghira bach ma ytl3ch CPU */
         napms(50); /* 50ms = ~20 FPS */
     }
     
-    /* Save data before exit */
+    /* Kan-sauvgiw data 9bel ma nkhrjo */
     ui_context_save_data(ctx);
+    LOG_INFO("UI loop exit");
 }
 
 void ui_cleanup(UIContext *ctx) {
-    if (!ctx) return;
+    if (!ctx) {
+        LOG_WARN("ui_cleanup called with NULL ctx");
+        return;
+    }
     
-    /* Cleanup current state */
+    /* Kan-nqaydo state l-haliya */
     UIState state = ctx->current_state;
     if (state < UI_STATE_COUNT && state_handlers[state].cleanup) {
         state_handlers[state].cleanup(ctx);
     }
     
-    /* End ncurses */
+    /* Kan-sddo ncurses */
     endwin();
     
     g_ctx = NULL;
