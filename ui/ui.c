@@ -3,6 +3,12 @@
 #include "ui_theme.h"
 #include "ui_layout.h"
 #include "ui_draw.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <signal.h>
+#endif
 #include "ui_input.h"
 #include "ui_utils.h"
 #include "../include/fichiers.h"
@@ -501,7 +507,12 @@ bool ui_init(UIContext *ctx) {
     ui_theme_init();
     
     /* Setup resize handler */
+#ifndef _WIN32
     signal(SIGWINCH, handle_resize);
+#else
+    /* On Windows, we'll handle resizing in the main loop */
+    SetConsoleCtrlHandler(NULL, FALSE);
+#endif
     
     /* Load data */
     ui_context_load_data(ctx);
@@ -509,13 +520,49 @@ bool ui_init(UIContext *ctx) {
     return true;
 }
 
+#ifdef _WIN32
+static BOOL WINAPI consoleHandler(DWORD signal) {
+    if (signal == CTRL_C_EVENT) {
+        g_running = false;
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif
+
 void ui_run(UIContext *ctx) {
     if (!ctx) return;
     
     g_running = true;
     Layout layout;
     
+#ifdef _WIN32
+    /* Set up console handler for Windows */
+    SetConsoleCtrlHandler(consoleHandler, TRUE);
+    
+    /* Get initial console size */
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    ctx->term_cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    ctx->term_rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    ui_context_resize(ctx, ctx->term_rows, ctx->term_cols);
+#endif
+    
     while (g_running && ctx->current_state != UI_STATE_EXIT) {
+#ifdef _WIN32
+        /* Check for window resize on Windows */
+        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+        int new_cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        int new_rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        
+        if (new_cols != ctx->term_cols || new_rows != ctx->term_rows) {
+            ctx->term_cols = new_cols;
+            ctx->term_rows = new_rows;
+            ui_context_resize(ctx, new_rows, new_cols);
+            ctx->needs_redraw = true;
+        }
+#endif
+        
         /* Calculate layout */
         ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
         

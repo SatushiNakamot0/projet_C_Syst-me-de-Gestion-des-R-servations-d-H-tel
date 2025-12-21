@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "structures.h"
-#include "facturation.h"
+#include "../include/structures.h"
+#include "../include/facturation.h"
+#include "../include/fichiers.h"
+
+/* Déclaration des fonctions */
+void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients);
+void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients);
 
 /* Calcul du montant total */
 float calculer_total(int nbNuits, float prixNuit)
@@ -115,27 +120,4 @@ void afficher_factures(const Facture factures[], int count, const Client clients
     }
 
     printf("================================================================================\n");
-}
-
-/* Sauvegarde des factures */
-void sauvegarder_factures(const Facture factures[], int count)
-{
-    FILE *f = fopen("factures.txt", "w");
-    if (f == NULL)
-    {
-        printf("Erreur ouverture fichier factures.\n");
-        return;
-    }
-
-    for (int i = 0; i < count; i++)
-    {
-        fprintf(f, "%d %d %d %.2f %.2f\n",
-                factures[i].idFacture,
-                factures[i].idClient,
-                factures[i].nbNuits,
-                factures[i].prixNuit,
-                factures[i].total);
-    }
-
-    fclose(f);
 }

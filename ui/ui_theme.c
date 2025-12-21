@@ -53,8 +53,8 @@ void ui_theme_init(void) {
     /* Info messages - cyan */
     init_pair(COLOR_PAIR_INFO, COLOR_CYAN, -1);
     
-    /* Highlight - bright yellow background */
-    init_pair(COLOR_PAIR_HIGHLIGHT, COLOR_BLACK, COLOR_YELLOW);
+    /* Highlight - bright white on blue */
+    init_pair(COLOR_PAIR_HIGHLIGHT, COLOR_WHITE, COLOR_BLUE);
     
     /* Dim text - gray for secondary information */
     init_pair(COLOR_PAIR_DIM, COLOR_BLACK, -1);

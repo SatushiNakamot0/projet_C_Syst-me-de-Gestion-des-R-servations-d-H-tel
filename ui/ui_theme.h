@@ -48,6 +48,9 @@ typedef enum {
     /* TABLE COLORS - Tabular data display */
     COLOR_PAIR_TABLE_HEADER,     /* Table header: White on blue bg */
     COLOR_PAIR_TABLE_EVEN,       /* Even rows: White on black bg */
+    
+    /* HIGHLIGHT - For highlighting important UI elements */
+    COLOR_PAIR_HIGHLIGHT,        /* Highlight: Bright white on blue bg */
     COLOR_PAIR_TABLE_ODD,        /* Odd rows: White on black bg */
     COLOR_PAIR_TABLE_SELECTED,   /* Selected row: White on blue bg */
     

@@ -1,8 +1,11 @@
 #ifndef UI_UTILS_H
 #define UI_UTILS_H
 
+#include <stdbool.h>
 #include <time.h>
+#include <stdarg.h>
 #include "../include/structures.h"
+#include "ui_state.h"  // For UIContext definition
 
 /* ============================================================================
  * UI UTILITIES
@@ -51,9 +54,8 @@ bool ui_utils_validate_date(const char *date); /* Format: DD/MM/YYYY */
 void ui_utils_format_currency(char *dest, float amount, size_t dest_size);
 void ui_utils_format_number(char *dest, int number, size_t dest_size);
 
-/* Status message helpers - forward declaration */
-struct UIContext;
-void ui_utils_show_status(struct UIContext *ctx, int type, const char *format, ...);
+/* Status message helpers */
+void ui_utils_show_status(UIContext *ctx, int type, const char *format, ...);
 
 /* Empty state drawing */
 void ui_utils_draw_empty_state(int y, int x, int h, int w, const char *item_name, char action_key);

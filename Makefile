@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Iinclude -Iui -Wall -Wextra -pedantic -std=c99
-LDFLAGS = -lncurses
+CFLAGS = -Iinclude -Iui -I/mingw64/include/ncurses -I/mingw64/include -Wall -Wextra -pedantic -std=c99
+LDFLAGS = -L/mingw64/lib -lncurses
 OBJ_DIR = obj
 SRC_DIR = src
 UI_DIR = ui

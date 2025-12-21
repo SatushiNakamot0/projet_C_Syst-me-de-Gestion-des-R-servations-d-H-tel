@@ -10,6 +10,6 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
 
 void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients);
 
-void sauvegarder_factures(const Facture factures[], int count);
+void sauvegarder_factures(Facture *factures, int count);
 
 #endif

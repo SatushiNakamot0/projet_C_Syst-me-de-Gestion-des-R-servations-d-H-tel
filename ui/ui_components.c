@@ -99,10 +99,10 @@ void ui_component_table_draw(TableComponent *table,
     
     /* Draw scroll indicators */
     if (table->scroll_offset > 0) {
-        mvaddch(table->y + 2, table->x + table->width - 1, '↑');
+        mvaddch(table->y + 2, table->x + table->width - 1, ACS_UARROW);
     }
     if (end_idx < table->total_rows) {
-        mvaddch(table->y + table->height - 1, table->x + table->width - 1, '↓');
+        mvaddch(table->y + table->height - 1, table->x + table->width - 1, ACS_DARROW);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "ui_utils.h"
 #include "ui_theme.h"
+#include "ui_state.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -248,7 +249,7 @@ void ui_utils_format_number(char *dest, int number, size_t dest_size) {
     snprintf(dest, dest_size, "%d", number);
 }
 
-void ui_utils_show_status(struct UIContext *ctx, int type, const char *format, ...) {
+void ui_utils_show_status(UIContext *ctx, int type, const char *format, ...) {
     va_list args;
     va_start(args, format);
     vsnprintf(ctx->status_message, sizeof(ctx->status_message), format, args);
