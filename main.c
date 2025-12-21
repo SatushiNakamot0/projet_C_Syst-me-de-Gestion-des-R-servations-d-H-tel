@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include "ui/ui.h"
 #include "ui/ui_state.h"
- #include "include/debug.h"
+#include "include/debug.h"
+#include "include/data_init.h"
 
 /* ============================================================================
  * MAIN ENTRY POINT
@@ -19,6 +20,12 @@ int main(void)
     log_cfg.use_colors = 1;
     (void)log_init(&log_cfg);
     atexit(log_shutdown);
+
+    /* Initialize data directory structure */
+    if (!init_data_directory()) {
+        LOG_ERROR("Failed to initialize data directory");
+        return EXIT_FAILURE;
+    }
 
     /* Kan-creyiw UI context */
     UIContext *ctx = ui_context_create();

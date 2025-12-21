@@ -1,71 +1,97 @@
 cmake_minimum_required(VERSION 3.10)
 project(HotelReservationSystem C)
 
+# Enforce C99 standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Windows/MSYS2: help CMake find ncurses (FindCurses doesn't always locate it with MinGW)
-if(WIN32)
-    set(MSYS2_PREFIX "C:/msys64/ucrt64" CACHE PATH "MSYS2 UCRT64 prefix")
-    list(PREPEND CMAKE_PREFIX_PATH "${MSYS2_PREFIX}")
-
-    if(NOT DEFINED CURSES_INCLUDE_PATH)
-        set(CURSES_INCLUDE_PATH "${MSYS2_PREFIX}/include" CACHE PATH "Curses include path")
-    endif()
-    if(NOT DEFINED CURSES_LIBRARY)
-        set(CURSES_LIBRARY "${MSYS2_PREFIX}/lib/libncursesw.dll.a" CACHE FILEPATH "Curses library")
-    endif()
-endif()
-
-# Find required packages
-find_package(Curses REQUIRED)
-
-# Sources: ONLY from src/ (diagramms/ stays in repo but is never compiled)
-file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
+# Auto-discover all source files from src/ and ui/ directories
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-)
-
-# Exclude ui_sources.c as it includes UI files directly
-list(FILTER PROJECT_SOURCES EXCLUDE REGEX ".*ui_sources\\.c$")
-
-# UI sources
-file(GLOB UI_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.c"
 )
 
-add_executable(hotel_app ${PROJECT_SOURCES} ${UI_SOURCES})
+# Exclude problematic files if they exist
+list(FILTER PROJECT_SOURCES EXCLUDE REGEX ".*ui_sources\\.c$")
 
+# Auto-discover all header files from include/ directory
+file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+)
+
+# Create executable with auto-discovered sources
+add_executable(hotel_app ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+
+# Dynamic library handling for cross-platform compatibility
+find_package(Curses REQUIRED)
+
+# Include directories - relative paths only
 target_include_directories(hotel_app
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CURSES_INCLUDE_DIRS}
 )
 
+# Platform-specific library linking
 if(WIN32)
-    target_include_directories(hotel_app
-        PRIVATE
-            "${MSYS2_PREFIX}/include/ncurses"
+    # Windows: Auto-detect MSYS2/MinGW paths dynamically
+    find_program(MSYS2_PREFIX NAMES ucrt64 mingw64 PATHS
+        "C:/msys64/ucrt64"
+        "C:/msys64/mingw64"
+        "C:/tools/msys64/ucrt64"
+        DOC "MSYS2 installation prefix"
     )
-endif()
-
-# On MSYS2/MinGW, FindCurses can pick a static ncurses archive that doesn't match
-# the headers' dllimport annotations. Force the DLL import library to avoid
-# undefined references like __imp_wattr_off / __imp_init_pair.
-if(WIN32)
-    target_link_libraries(hotel_app PRIVATE "C:/msys64/ucrt64/lib/libncursesw.dll.a")
+    
+    if(MSYS2_PREFIX)
+        message(STATUS "Found MSYS2 at: ${MSYS2_PREFIX}")
+        target_include_directories(hotel_app PRIVATE "${MSYS2_PREFIX}/include/ncurses")
+        
+        # Find the ncurses library dynamically
+        find_library(NCURSES_LIB 
+            NAMES ncursesw libncursesw
+            PATHS "${MSYS2_PREFIX}/lib"
+            DOC "NCurses library"
+        )
+        
+        if(NCURSES_LIB)
+            target_link_libraries(hotel_app PRIVATE ${NCURSES_LIB})
+        else()
+            message(FATAL_ERROR "NCurses library not found in ${MSYS2_PREFIX}/lib")
+        endif()
+    else()
+        # Fallback to standard Curses library
+        target_link_libraries(hotel_app PRIVATE ${CURSES_LIBRARIES})
+    endif()
 else()
+    # Linux/Unix: Use standard Curses library
     target_link_libraries(hotel_app PRIVATE ${CURSES_LIBRARIES})
 endif()
 
-# Make tests optional
+# Compiler-specific optimizations
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(hotel_app PRIVATE -Wall -Wextra -O2)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(hotel_app PRIVATE -Wall -Wextra -O2)
+elseif(MSVC)
+    target_compile_definitions(hotel_app PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
+# Optional tests
 option(ENABLE_TESTS "Build tests" OFF)
 if(ENABLE_TESTS)
     find_package(Criterion REQUIRED)
     add_subdirectory(tests)
 endif()
 
-# Print configuration summary
-message(STATUS "Curses include dir: ${CURSES_INCLUDE_DIRS}")
-message(STATUS "Curses libraries: ${CURSES_LIBRARIES}")
-message(STATUS "MSYS2 prefix: ${MSYS2_PREFIX}")
-message(STATUS "Build tests: ${ENABLE_TESTS}")
+# Configuration summary
+message(STATUS "=== Hotel Reservation System Build Configuration ===")
+message(STATUS "C Standard: ${CMAKE_C_STANDARD}")
+message(STATUS "Curses Include: ${CURSES_INCLUDE_DIRS}")
+message(STATUS "Curses Libraries: ${CURSES_LIBRARIES}")
+message(STATUS "Source Files: ${PROJECT_SOURCES}")
+message(STATUS "Header Files: ${PROJECT_HEADERS}")
+if(WIN32 AND MSYS2_PREFIX)
+    message(STATUS "MSYS2 Prefix: ${MSYS2_PREFIX}")
+endif()
+message(STATUS "Build Tests: ${ENABLE_TESTS}")
+message(STATUS "===================================================")
