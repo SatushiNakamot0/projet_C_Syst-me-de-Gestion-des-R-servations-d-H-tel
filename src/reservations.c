@@ -382,11 +382,7 @@ void modifier_reservation(Reservation reservations[], int *count,
     int index_reservation = -1;
     
     printf("\n--- MODIFICATION D'UNE RESERVATION ---\n");
-    printf("Entrez l'ID de la reservation a modifier: ");
-    if (scanf("%d", &id_a_modifier) != 1) {
-        printf("Erreur: ID invalide.\n");
-        return;
-    }
+    id_a_modifier = safe_input_int("Entrez l'ID de la reservation a modifier: ");
     
     index_reservation = trouver_reservation_par_id(reservations, *count, id_a_modifier);
     
@@ -404,23 +400,26 @@ void modifier_reservation(Reservation reservations[], int *count,
     printf("  Montant: %.2f EUR\n", reservations[index_reservation].montant);
     
     int choix;
-    printf("\nQue voulez-vous modifier ? (1: Dates, 2: Chambre): ");
-    if (scanf("%d", &choix) != 1) {
-        printf("Erreur: Choix invalide.\n");
-        return;
-    }
+    choix = safe_input_int("\nQue voulez-vous modifier ? (1: Dates, 2: Chambre): ");
     
     switch (choix) {
         case 1: {
-            char nouvelle_date_debut[11], nouvelle_date_fin[11];
-            printf("Nouvelle date de debut (actuelle: %s): ", reservations[index_reservation].date_debut);
-            if (scanf("%10s", nouvelle_date_debut) != 1 || !valider_date(nouvelle_date_debut)) {
+            char nouvelle_date_debut[DATE_LENGTH], nouvelle_date_fin[DATE_LENGTH];
+            char prompt_debut[100];
+            char prompt_fin[100];
+
+            sprintf(prompt_debut, "Nouvelle date de debut (actuelle: %s): ", reservations[index_reservation].date_debut);
+            safe_input_string(prompt_debut, nouvelle_date_debut, DATE_LENGTH);
+
+            if (!valider_date(nouvelle_date_debut)) {
                 printf("Erreur: Date invalide.\n");
                 return;
             }
             
-            printf("Nouvelle date de fin (actuelle: %s): ", reservations[index_reservation].date_fin);
-            if (scanf("%10s", nouvelle_date_fin) != 1 || !valider_date(nouvelle_date_fin)) {
+            sprintf(prompt_fin, "Nouvelle date de fin (actuelle: %s): ", reservations[index_reservation].date_fin);
+            safe_input_string(prompt_fin, nouvelle_date_fin, DATE_LENGTH);
+
+            if (!valider_date(nouvelle_date_fin)) {
                 printf("Erreur: Date invalide.\n");
                 return;
             }
@@ -460,12 +459,10 @@ void modifier_reservation(Reservation reservations[], int *count,
         
         case 2: {
             int nouvelle_chambre;
-            printf("Nouveau numero de chambre (actuel: %d): ",
-                   reservations[index_reservation].chambre_numero);
-            if (scanf("%d", &nouvelle_chambre) != 1) {
-                printf("Erreur: Numero invalide.\n");
-                return;
-            }
+            char prompt_chambre[100];
+
+            sprintf(prompt_chambre, "Nouveau numero de chambre (actuel: %d): ", reservations[index_reservation].chambre_numero);
+            nouvelle_chambre = safe_input_int(prompt_chambre);
             
             int index_chambre = trouver_chambre_par_numero(chambres, chambres_count, nouvelle_chambre);
             if (index_chambre == -1) {
@@ -506,11 +503,7 @@ void annuler_reservation(Reservation reservations[], int *count) {
     int index_reservation = -1;
     
     printf("\n--- ANNULATION D'UNE RESERVATION ---\n");
-    printf("Entrez l'ID de la reservation a annuler: ");
-    if (scanf("%d", &id_a_annuler) != 1) {
-        printf("Erreur: ID invalide.\n");
-        return;
-    }
+    id_a_annuler = safe_input_int("Entrez l'ID de la reservation a annuler: ");
     
     index_reservation = trouver_reservation_par_id(reservations, *count, id_a_annuler);
     
@@ -527,11 +520,9 @@ void annuler_reservation(Reservation reservations[], int *count) {
            reservations[index_reservation].date_fin);
     printf("  Montant: %.2f EUR\n", reservations[index_reservation].montant);
     
-    printf("\nConfirmez-vous l'annulation ? (o/n): ");
-    char confirmation;
-    scanf(" %c", &confirmation);
+    int confirmation = safe_input_yes_no("\nConfirmez-vous l'annulation ? (o/n): ");
     
-    if (confirmation != 'o' && confirmation != 'O') {
+    if (!confirmation) {
         printf("Annulation annulee.\n");
         return;
     }
