@@ -17,7 +17,7 @@
 #include "../include/clients.h"
 #include "../include/chambres.h"
 #include "../include/facturation.h"
-#include <curses.h>
+#include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -50,6 +50,10 @@ static void handle_resize(int sig)
 static void state_draw_dashboard(UIContext *ctx);
 static NavDirection state_handle_dashboard(UIContext *ctx, int key);
 static void state_cleanup_dashboard(UIContext *ctx);
+
+/* State machine input handler */
+static NavDirection handle_app_state_input(UIContext *ctx, int key);
+static void draw_content_window(UIContext *ctx, Layout *layout);
 
 static void state_draw_clients(UIContext *ctx);
 static NavDirection state_handle_clients(UIContext *ctx, int key);
@@ -126,6 +130,7 @@ UIContext *ui_context_create(void)
 
     ctx->current_state = UI_STATE_DASHBOARD;
     ctx->previous_state = UI_STATE_DASHBOARD;
+    ctx->app_state = STATE_SIDEBAR; /* Start with sidebar focus */
     ctx->selected_menu_item = 0;
     ctx->selected_list_item = 0;
     ctx->scroll_offset = 0;
@@ -232,6 +237,202 @@ void ui_context_save_data(UIContext *ctx)
     sauvegarder_factures(ctx->factures, ctx->factures_count);
 }
 
+/* State machine input handler */
+static NavDirection handle_app_state_input(UIContext *ctx, int key)
+{
+    NavDirection dir = ui_input_process_key(ctx, key);
+
+    switch (ctx->app_state)
+    {
+    case STATE_SIDEBAR:
+        /* UP/DOWN: Changes the active menu selection */
+        if (dir == NAV_UP && ctx->selected_menu_item > 0)
+        {
+            ctx->selected_menu_item--;
+            ctx->needs_redraw = true;
+        }
+        else if (dir == NAV_DOWN && ctx->selected_menu_item < 6)
+        {
+            ctx->selected_menu_item++;
+            ctx->needs_redraw = true;
+        }
+        /* ENTER: Locks the choice and changes state to STATE_CONTENT_LIST */
+        else if (dir == NAV_SELECT)
+        {
+            switch (ctx->selected_menu_item)
+            {
+            case 0:
+                ctx->current_state = UI_STATE_DASHBOARD;
+                break;
+            case 1:
+                ctx->current_state = UI_STATE_CLIENTS;
+                break;
+            case 2:
+                ctx->current_state = UI_STATE_ROOMS;
+                break;
+            case 3:
+                ctx->current_state = UI_STATE_RESERVATIONS;
+                break;
+            case 4:
+                ctx->current_state = UI_STATE_BILLING;
+                break;
+            case 5:
+                ctx->current_state = UI_STATE_HELP;
+                break;
+            case 6:
+                ctx->current_state = UI_STATE_EXIT;
+                break;
+            }
+            ctx->app_state = STATE_CONTENT_LIST; /* Switch focus to content */
+            ctx->selected_list_item = 0;         /* Reset list selection */
+            ctx->scroll_offset = 0;              /* Reset scroll */
+            ctx->needs_redraw = true;
+        }
+        break;
+
+    case STATE_CONTENT_LIST:
+        /* UP/DOWN: Scrolls through the list */
+        if (key == KEY_UP)
+        {
+            if (ctx->selected_list_item > 0)
+            {
+                ctx->selected_list_item--;
+                if (ctx->selected_list_item < ctx->scroll_offset)
+                {
+                    ctx->scroll_offset = ctx->selected_list_item;
+                }
+                ctx->needs_redraw = true;
+            }
+        }
+        else if (key == KEY_DOWN)
+        {
+            int max_items = 0;
+            switch (ctx->current_state)
+            {
+            case UI_STATE_CLIENTS:
+                max_items = ctx->clients_count;
+                break;
+            case UI_STATE_ROOMS:
+                max_items = ctx->chambres_count;
+                break;
+            case UI_STATE_RESERVATIONS:
+                max_items = ctx->reservations_count;
+                break;
+            case UI_STATE_BILLING:
+                max_items = ctx->factures_count;
+                break;
+            default:
+                max_items = 0;
+                break;
+            }
+
+            if (ctx->selected_list_item < max_items - 1)
+            {
+                ctx->selected_list_item++;
+                if (ctx->selected_list_item >= ctx->scroll_offset + ctx->max_visible_items)
+                {
+                    ctx->scroll_offset = ctx->selected_list_item - ctx->max_visible_items + 1;
+                }
+                ctx->needs_redraw = true;
+            }
+        }
+        /* ESC: Unlocks focus and changes state back to STATE_SIDEBAR */
+        else if (key == 27) /* ESC */
+        {
+            ctx->app_state = STATE_SIDEBAR;
+            ctx->needs_redraw = true;
+        }
+        /* ENTER: Selects the highlighted item */
+        else if (dir == NAV_SELECT)
+        {
+            /* For now, just handle add actions */
+            if (key == 'a' || key == 'A')
+            {
+                if (ctx->current_state == UI_STATE_CLIENTS)
+                {
+                    ctx->current_state = UI_STATE_CLIENTS_ADD;
+                    ctx->app_state = STATE_FORM_INPUT;
+                }
+                else if (ctx->current_state == UI_STATE_ROOMS)
+                {
+                    ctx->current_state = UI_STATE_ROOMS_ADD;
+                    ctx->app_state = STATE_FORM_INPUT;
+                }
+                ctx->needs_redraw = true;
+            }
+            /* Handle other actions like edit, delete */
+        }
+        break;
+
+    case STATE_FORM_INPUT:
+        /* Form input is handled by individual state handlers */
+        /* ESC should go back to content list */
+        if (key == 27)
+        {
+            ctx->app_state = STATE_CONTENT_LIST;
+            ctx->needs_redraw = true;
+            return NAV_BACK;
+        }
+        break;
+    }
+
+    return dir;
+}
+
+/* Draw content window based on current menu selection */
+static void draw_content_window(UIContext *ctx, Layout *layout)
+{
+    int y, x, h, w;
+    ui_layout_get_content(layout, &y, &x, &h, &w);
+
+    /* Clear content area */
+    for (int i = 0; i < h; i++)
+    {
+        for (int j = 0; j < w; j++)
+        {
+            mvaddch(y + i, x + j, ' ');
+        }
+    }
+
+    /* Highlight content border if in content focus */
+    if (ctx->app_state == STATE_CONTENT_LIST)
+    {
+        attron(A_REVERSE);
+        ui_theme_draw_box(y, x, h, w);
+        attroff(A_REVERSE);
+    }
+    else
+    {
+        ui_theme_draw_box(y, x, h, w);
+    }
+
+    /* Draw content based on current state */
+    switch (ctx->current_state)
+    {
+    case UI_STATE_DASHBOARD:
+        ui_draw_dashboard(ctx, layout);
+        break;
+    case UI_STATE_CLIENTS:
+        ui_draw_clients_list(ctx, layout);
+        break;
+    case UI_STATE_ROOMS:
+        ui_draw_rooms_list(ctx, layout);
+        break;
+    case UI_STATE_RESERVATIONS:
+        ui_draw_reservations_list(ctx, layout);
+        break;
+    case UI_STATE_BILLING:
+        ui_draw_billing_list(ctx, layout);
+        break;
+    case UI_STATE_HELP:
+        ui_draw_help(ctx, layout);
+        break;
+    default:
+        /* For form states, they handle their own drawing */
+        break;
+    }
+}
+
 /* State implementations */
 static void state_draw_dashboard(UIContext *ctx)
 {
@@ -303,85 +504,49 @@ static void state_draw_clients(UIContext *ctx)
 
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_clients_list(ctx, &layout);
+    draw_content_window(ctx, &layout);
     ui_draw_footer(ctx, &layout);
     ui_draw_status_message(ctx, &layout);
 }
 
 static NavDirection state_handle_clients(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-
-    /* Navigation f sidebar */
-    if (dir == NAV_UP || dir == NAV_DOWN)
+    /* Only handle actions when in content list state */
+    if (ctx->app_state == STATE_CONTENT_LIST)
     {
-        if (dir == NAV_UP && ctx->selected_menu_item > 0)
+        /* Actions */
+        if (key == 'a' || key == 'A')
         {
-            ctx->selected_menu_item--;
+            ctx->current_state = UI_STATE_CLIENTS_ADD;
+            ctx->app_state = STATE_FORM_INPUT;
+            ctx->needs_redraw = true;
         }
-        else if (dir == NAV_DOWN && ctx->selected_menu_item < 6)
+        else if (key == 'e' || key == 'E')
         {
-            ctx->selected_menu_item++;
+            if (ctx->selected_list_item < ctx->clients_count)
+            {
+                ctx->current_state = UI_STATE_CLIENTS_EDIT;
+                ctx->app_state = STATE_FORM_INPUT;
+                ctx->needs_redraw = true;
+            }
         }
-        ctx->needs_redraw = true;
-        return NAV_NONE;
-    }
-
-    /* Navigation f list */
-    if (key == KEY_UP && ctx->selected_list_item > 0)
-    {
-        ctx->selected_list_item--;
-        if (ctx->selected_list_item < ctx->scroll_offset)
+        else if (key == 'd' || key == 'D')
         {
-            ctx->scroll_offset = ctx->selected_list_item;
+            if (ctx->selected_list_item < ctx->clients_count)
+            {
+                ctx->current_state = UI_STATE_CLIENTS_DELETE;
+                ctx->needs_redraw = true;
+            }
         }
-        ctx->needs_redraw = true;
-    }
-    else if (key == KEY_DOWN && ctx->selected_list_item < ctx->clients_count - 1)
-    {
-        ctx->selected_list_item++;
-        if (ctx->selected_list_item >= ctx->scroll_offset + ctx->max_visible_items)
+        else if (key == 's' || key == 'S')
         {
-            ctx->scroll_offset = ctx->selected_list_item - ctx->max_visible_items + 1;
-        }
-        ctx->needs_redraw = true;
-    }
-
-    /* Actions */
-    if (key == 'a' || key == 'A')
-    {
-        ctx->current_state = UI_STATE_CLIENTS_ADD;
-        ctx->needs_redraw = true;
-    }
-    else if (key == 'e' || key == 'E')
-    {
-        if (ctx->selected_list_item < ctx->clients_count)
-        {
-            ctx->current_state = UI_STATE_CLIENTS_EDIT;
+            ctx->current_state = UI_STATE_CLIENTS_SEARCH;
+            ctx->app_state = STATE_FORM_INPUT;
             ctx->needs_redraw = true;
         }
     }
-    else if (key == 'd' || key == 'D')
-    {
-        if (ctx->selected_list_item < ctx->clients_count)
-        {
-            ctx->current_state = UI_STATE_CLIENTS_DELETE;
-            ctx->needs_redraw = true;
-        }
-    }
-    else if (key == 's' || key == 'S')
-    {
-        ctx->current_state = UI_STATE_CLIENTS_SEARCH;
-        ctx->needs_redraw = true;
-    }
-    else if (dir == NAV_BACK)
-    {
-        ctx->current_state = UI_STATE_DASHBOARD;
-        ctx->selected_menu_item = 0;
-        ctx->needs_redraw = true;
-    }
 
-    return dir;
+    return NAV_NONE;
 }
 
 static void state_cleanup_clients(UIContext *ctx)
@@ -420,6 +585,7 @@ static NavDirection state_handle_clients_add(UIContext *ctx, int key)
     {
         ui_form_cleanup(ctx);
         ctx->current_state = UI_STATE_CLIENTS;
+        ctx->app_state = STATE_CONTENT_LIST;
         ctx->needs_redraw = true;
         return NAV_BACK;
     }
@@ -456,6 +622,7 @@ static NavDirection state_handle_clients_add(UIContext *ctx, int key)
                 ctx->status_timeout = 60;
                 ui_form_cleanup(ctx);
                 ctx->current_state = UI_STATE_CLIENTS;
+                ctx->app_state = STATE_CONTENT_LIST;
                 ctx->needs_redraw = true;
                 return NAV_BACK;
             }
@@ -550,85 +717,47 @@ static void state_draw_rooms(UIContext *ctx)
 
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_rooms_list(ctx, &layout);
+    draw_content_window(ctx, &layout);
     ui_draw_footer(ctx, &layout);
     ui_draw_status_message(ctx, &layout);
 }
 
 static NavDirection state_handle_rooms(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-
-    /* Handle sidebar navigation */
-    if (dir == NAV_UP || dir == NAV_DOWN)
+    /* Only handle actions when in content list state */
+    if (ctx->app_state == STATE_CONTENT_LIST)
     {
-        if (dir == NAV_UP && ctx->selected_menu_item > 0)
+        /* Handle actions */
+        if (key == 'a' || key == 'A')
         {
-            ctx->selected_menu_item--;
+            ctx->current_state = UI_STATE_ROOMS_ADD;
+            ctx->app_state = STATE_FORM_INPUT;
+            ctx->needs_redraw = true;
         }
-        else if (dir == NAV_DOWN && ctx->selected_menu_item < 6)
+        else if (key == 'e' || key == 'E')
         {
-            ctx->selected_menu_item++;
+            if (ctx->selected_list_item < ctx->chambres_count)
+            {
+                ctx->current_state = UI_STATE_ROOMS_EDIT;
+                ctx->needs_redraw = true;
+            }
         }
-        ctx->needs_redraw = true;
-        return NAV_NONE;
-    }
-
-    /* Handle list navigation */
-    if (key == KEY_UP && ctx->selected_list_item > 0)
-    {
-        ctx->selected_list_item--;
-        if (ctx->selected_list_item < ctx->scroll_offset)
+        else if (key == 'd' || key == 'D')
         {
-            ctx->scroll_offset = ctx->selected_list_item;
+            if (ctx->selected_list_item < ctx->chambres_count)
+            {
+                /* Delete room - khas dialog dyal confirmation */
+                ctx->needs_redraw = true;
+            }
         }
-        ctx->needs_redraw = true;
-    }
-    else if (key == KEY_DOWN && ctx->selected_list_item < ctx->chambres_count - 1)
-    {
-        ctx->selected_list_item++;
-        if (ctx->selected_list_item >= ctx->scroll_offset + ctx->max_visible_items)
+        else if (key == 's' || key == 'S')
         {
-            ctx->scroll_offset = ctx->selected_list_item - ctx->max_visible_items + 1;
-        }
-        ctx->needs_redraw = true;
-    }
-
-    /* Handle actions */
-    if (key == 'a' || key == 'A')
-    {
-        ctx->current_state = UI_STATE_ROOMS_ADD;
-        ctx->needs_redraw = true;
-    }
-    else if (key == 'e' || key == 'E')
-    {
-        if (ctx->selected_list_item < ctx->chambres_count)
-        {
-            ctx->current_state = UI_STATE_ROOMS_EDIT;
+            /* Search rooms */
             ctx->needs_redraw = true;
         }
     }
-    else if (key == 'd' || key == 'D')
-    {
-        if (ctx->selected_list_item < ctx->chambres_count)
-        {
-            /* Delete room - khas dialog dyal confirmation */
-            ctx->needs_redraw = true;
-        }
-    }
-    else if (key == 's' || key == 'S')
-    {
-        /* Search rooms */
-        ctx->needs_redraw = true;
-    }
-    else if (dir == NAV_BACK)
-    {
-        ctx->current_state = UI_STATE_DASHBOARD;
-        ctx->selected_menu_item = 0;
-        ctx->needs_redraw = true;
-    }
 
-    return dir;
+    return NAV_NONE;
 }
 
 static void state_cleanup_rooms(UIContext *ctx)
@@ -933,6 +1062,7 @@ static NavDirection state_handle_rooms_add(UIContext *ctx, int key)
             ctx->status_timeout = 60;
             ui_form_cleanup(ctx);
             ctx->current_state = UI_STATE_ROOMS;
+            ctx->app_state = STATE_CONTENT_LIST;
             ctx->needs_redraw = true;
             return NAV_BACK;
         }
@@ -943,6 +1073,7 @@ static NavDirection state_handle_rooms_add(UIContext *ctx, int key)
     {
         ui_form_cleanup(ctx);
         ctx->current_state = UI_STATE_ROOMS;
+        ctx->app_state = STATE_CONTENT_LIST;
         ctx->needs_redraw = true;
         return NAV_BACK;
     }
@@ -963,7 +1094,7 @@ static void state_draw_reservations(UIContext *ctx)
 
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_reservations_list(ctx, &layout);
+    draw_content_window(ctx, &layout);
     ui_draw_footer(ctx, &layout);
     ui_draw_status_message(ctx, &layout);
 }
@@ -1079,7 +1210,7 @@ static void state_draw_billing(UIContext *ctx)
 
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_billing_list(ctx, &layout);
+    draw_content_window(ctx, &layout);
     ui_draw_footer(ctx, &layout);
     ui_draw_status_message(ctx, &layout);
 }
@@ -1143,7 +1274,7 @@ static void state_draw_help(UIContext *ctx)
 
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_help(ctx, &layout);
+    draw_content_window(ctx, &layout);
     ui_draw_footer(ctx, &layout);
     ui_draw_status_message(ctx, &layout);
 }
@@ -1310,14 +1441,25 @@ void ui_run(UIContext *ctx)
         int key = ui_input_get_key();
         if (key != ERR)
         {
-            UIState state = ctx->current_state;
-            if (state < UI_STATE_COUNT && state_handlers[state].handle_input)
+            /* First handle app state navigation */
+            NavDirection app_dir = handle_app_state_input(ctx, key);
+
+            /* Then handle state-specific input if not handled by app state */
+            if (app_dir == NAV_NONE)
             {
-                NavDirection dir = state_handlers[state].handle_input(ctx, key);
-                if (dir == NAV_SELECT && ctx->current_state == UI_STATE_EXIT)
+                UIState state = ctx->current_state;
+                if (state < UI_STATE_COUNT && state_handlers[state].handle_input)
                 {
-                    g_running = false;
+                    NavDirection dir = state_handlers[state].handle_input(ctx, key);
+                    if (dir == NAV_SELECT && ctx->current_state == UI_STATE_EXIT)
+                    {
+                        g_running = false;
+                    }
                 }
+            }
+            else if (app_dir == NAV_SELECT && ctx->current_state == UI_STATE_EXIT)
+            {
+                g_running = false;
             }
         }
 

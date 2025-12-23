@@ -1,7 +1,7 @@
 #include "ui_form.h"
 #include <string.h>
 #include <stdlib.h>
-#include <curses.h>
+#include <ncurses.h>
 
 void ui_form_start_input(UIContext *ctx, int mode)
 {

@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <time.h>
-#include <curses.h>
+#include <ncurses.h>
 #include <stdbool.h>
 
 /* ============================================================================

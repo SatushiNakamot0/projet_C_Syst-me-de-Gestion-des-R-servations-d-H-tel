@@ -1,7 +1,7 @@
 #include "ui_components.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
-#include <curses.h>
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

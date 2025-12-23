@@ -2,7 +2,7 @@
 #define UI_STATE_H
 
 #include <stdbool.h>
-#include <curses.h>
+#include <ncurses.h>
 #include "../include/structures.h"
 
 /* ============================================================================
@@ -38,6 +38,14 @@ typedef enum
     UI_STATE_COUNT /* Sentinel value for array sizing */
 } UIState;
 
+/* App State enumeration - represents focus/navigation state */
+typedef enum
+{
+    STATE_SIDEBAR,      // User is moving up/down the main menu
+    STATE_CONTENT_LIST, // User is scrolling through a list (Rooms/Clients) in the right panel
+    STATE_FORM_INPUT    // User is typing inside a popup form (Add Room/Edit Client)
+} AppState;
+
 /* Navigation direction for menu navigation */
 typedef enum
 {
@@ -56,6 +64,7 @@ typedef struct
     /* Current UI state */
     UIState current_state;
     UIState previous_state;
+    AppState app_state; /* Current focus state */
 
     /* Application data */
     Client *clients;

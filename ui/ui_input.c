@@ -1,5 +1,5 @@
 #include "ui_input.h"
-#include <curses.h>
+#include <ncurses.h>
 #include <string.h>
 
 /* ============================================================================

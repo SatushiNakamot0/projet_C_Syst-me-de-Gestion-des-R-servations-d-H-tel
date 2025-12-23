@@ -7,7 +7,7 @@
 #include "../include/facturation.h"
 #include <string.h>
 #include <stdio.h>
-#include <curses.h>
+#include <ncurses.h>
 
 /* ============================================================================
  * UI DRAWING IMPLEMENTATION
@@ -68,8 +68,16 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
     int y, x, h, w;
     ui_layout_get_sidebar(layout, &y, &x, &h, &w);
 
-    /* Draw sidebar border */
+    /* Draw sidebar border - dim if not in sidebar focus */
+    if (ctx->app_state != STATE_SIDEBAR)
+    {
+        attron(ui_theme_get_pair(COLOR_PAIR_DIM));
+    }
     ui_theme_draw_box(y, x, h, w);
+    if (ctx->app_state != STATE_SIDEBAR)
+    {
+        attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
+    }
 
     /* Draw menu items */
     int start_y = y + 2;
@@ -78,7 +86,12 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
         int item_y = start_y + i;
         bool selected = (ctx->selected_menu_item == i);
 
-        if (selected)
+        if (ctx->app_state != STATE_SIDEBAR)
+        {
+            /* Dim the entire sidebar when not focused */
+            attron(ui_theme_get_pair(COLOR_PAIR_DIM));
+        }
+        else if (selected)
         {
             attron(ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED));
             for (int j = 1; j < w - 1; j++)
@@ -93,7 +106,11 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
 
         mvprintw(item_y, x + 2, "%s", sidebar_menu_items[i]);
 
-        if (selected)
+        if (ctx->app_state != STATE_SIDEBAR)
+        {
+            attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
+        }
+        else if (selected)
         {
             attroff(ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED));
         }
