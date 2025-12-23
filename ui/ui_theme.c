@@ -13,69 +13,56 @@ void ui_theme_init(void) {
     if (!has_colors()) {
         return; /* Terminal doesn't support colors */
     }
-    
+
     start_color();
     use_default_colors(); /* Use terminal's default background */
-    
-    /* Dark theme color definitions */
+
+    /* Professional Dark Theme - High Contrast & Readable */
     /* Format: init_pair(pair_id, foreground, background) */
-    
-    /* Default text - white on dark background */
-    init_pair(COLOR_PAIR_DEFAULT, COLOR_WHITE, -1);
-    
-    /* Title - bright cyan for emphasis */
-    init_pair(COLOR_PAIR_TITLE, COLOR_CYAN, -1);
-    
-    /* Header - bright white on dark blue */
-    init_pair(COLOR_PAIR_HEADER, COLOR_WHITE, COLOR_BLUE);
-    
-    /* Sidebar - dim white on dark gray */
-    init_pair(COLOR_PAIR_SIDEBAR, COLOR_WHITE, COLOR_BLACK);
-    
-    /* Sidebar selected - bright white on blue */
-    init_pair(COLOR_PAIR_SIDEBAR_SELECTED, COLOR_WHITE, COLOR_BLUE);
-    
-    /* Content area - default colors */
-    init_pair(COLOR_PAIR_CONTENT, COLOR_WHITE, -1);
-    
-    /* Borders - dim white */
-    init_pair(COLOR_PAIR_BORDER, COLOR_WHITE, -1);
-    
-    /* Success messages - green */
-    init_pair(COLOR_PAIR_SUCCESS, COLOR_GREEN, -1);
-    
-    /* Warning messages - yellow */
-    init_pair(COLOR_PAIR_WARNING, COLOR_YELLOW, -1);
-    
-    /* Error messages - red */
-    init_pair(COLOR_PAIR_ERROR, COLOR_RED, -1);
-    
-    /* Info messages - cyan */
-    init_pair(COLOR_PAIR_INFO, COLOR_CYAN, -1);
-    
-    /* Highlight - bright white on blue */
-    init_pair(COLOR_PAIR_HIGHLIGHT, COLOR_WHITE, COLOR_BLUE);
-    
-    /* Dim text - gray for secondary information */
-    init_pair(COLOR_PAIR_DIM, COLOR_BLACK, -1);
-    
-    /* Table header - bright white on dark blue */
-    init_pair(COLOR_PAIR_TABLE_HEADER, COLOR_WHITE, COLOR_BLUE);
-    
-    /* Table even rows - subtle background */
-    init_pair(COLOR_PAIR_TABLE_EVEN, COLOR_WHITE, COLOR_BLACK);
-    
-    /* Table odd rows - slightly different for zebra striping */
-    init_pair(COLOR_PAIR_TABLE_ODD, COLOR_WHITE, COLOR_BLACK);
-    
-    /* Table selected row - blue background */
-    init_pair(COLOR_PAIR_TABLE_SELECTED, COLOR_WHITE, COLOR_BLUE);
-    
-    /* Input field - default */
-    init_pair(COLOR_PAIR_INPUT, COLOR_WHITE, -1);
-    
-    /* Input field focused - bright white on dark blue */
-    init_pair(COLOR_PAIR_INPUT_FOCUS, COLOR_WHITE, COLOR_BLUE);
+
+    /* PRIMARY COLORS - Main content, readable text */
+    init_pair(COLOR_PAIR_DEFAULT, COLOR_WHITE, COLOR_BLACK);        /* Primary text: White on black */
+    init_pair(COLOR_PAIR_CONTENT, COLOR_WHITE, COLOR_BLACK);        /* Content area: White on black */
+
+    /* SECONDARY COLORS - Metadata, hints, inactive */
+    init_pair(COLOR_PAIR_DIM, COLOR_BLACK + 8, COLOR_BLACK);       /* Dim text: Dark gray on black */
+
+    /* ACCENT COLORS - Emphasis, titles, important info */
+    init_pair(COLOR_PAIR_TITLE, COLOR_CYAN, COLOR_BLACK);           /* Titles: Bright cyan on black */
+    init_pair(COLOR_PAIR_ACCENT, COLOR_CYAN, COLOR_BLACK);          /* Highlights: Bright cyan on black */
+
+    /* STATUS COLORS - Feedback and state indication */
+    init_pair(COLOR_PAIR_SUCCESS, COLOR_GREEN, COLOR_BLACK);        /* Success: Green on black */
+    init_pair(COLOR_PAIR_WARNING, COLOR_YELLOW, COLOR_BLACK);       /* Warning: Yellow on black */
+    init_pair(COLOR_PAIR_ERROR, COLOR_RED, COLOR_BLACK);            /* Error: Red on black */
+    init_pair(COLOR_PAIR_INFO, COLOR_BLUE, COLOR_BLACK);            /* Info: Blue on black */
+
+    /* INTERACTIVE STATES - Focus, selection, disabled */
+    init_pair(COLOR_PAIR_HEADER, COLOR_BLACK, COLOR_WHITE);         /* Header: Black on white */
+    init_pair(COLOR_PAIR_SIDEBAR, COLOR_WHITE, COLOR_BLACK);        /* Sidebar: White on black */
+    init_pair(COLOR_PAIR_SIDEBAR_SELECTED, COLOR_BLACK, COLOR_CYAN); /* Selected: Black on cyan */
+    init_pair(COLOR_PAIR_FOCUS, COLOR_BLACK, COLOR_CYAN);           /* Focus: Black on cyan */
+    init_pair(COLOR_PAIR_HOVER, COLOR_BLACK, COLOR_BLUE);           /* Hover: Black on blue */
+    init_pair(COLOR_PAIR_DISABLED, COLOR_BLACK + 8, COLOR_BLACK);   /* Disabled: Gray on black */
+
+    /* TABLE COLORS - Tabular data display */
+    init_pair(COLOR_PAIR_TABLE_HEADER, COLOR_BLACK, COLOR_WHITE);   /* Header: Black on white */
+    init_pair(COLOR_PAIR_TABLE_EVEN, COLOR_WHITE, COLOR_BLACK);     /* Even rows: White on black */
+    init_pair(COLOR_PAIR_TABLE_ODD, COLOR_WHITE, COLOR_BLACK);      /* Odd rows: White on black */
+    init_pair(COLOR_PAIR_TABLE_SELECTED, COLOR_BLACK, COLOR_CYAN);  /* Selected: Black on cyan */
+
+    /* HIGHLIGHT - For highlighting important UI elements */
+    init_pair(COLOR_PAIR_HIGHLIGHT, COLOR_BLACK, COLOR_CYAN);       /* Highlight: Black on cyan */
+
+    /* INPUT COLORS - Form fields */
+    init_pair(COLOR_PAIR_INPUT, COLOR_WHITE, COLOR_BLACK);          /* Input: White on black */
+    init_pair(COLOR_PAIR_INPUT_FOCUS, COLOR_BLACK, COLOR_CYAN);     /* Focused: Black on cyan */
+
+    /* BORDER COLORS - Visual separation */
+    init_pair(COLOR_PAIR_BORDER, COLOR_WHITE, COLOR_BLACK);         /* Border: White on black */
+
+    /* SECONDARY BG - Alternative backgrounds */
+    init_pair(COLOR_PAIR_SECONDARY_BG, COLOR_BLACK, COLOR_BLACK);   /* Secondary: Black on black */
 }
 
 int ui_theme_get_pair(ColorPair pair) {

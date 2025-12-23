@@ -339,8 +339,15 @@ static NavDirection handle_app_state_input(UIContext *ctx, int key)
         /* ESC: Unlocks focus and changes state back to STATE_SIDEBAR */
         else if (key == 27) /* ESC */
         {
+            clear();
             ctx->app_state = STATE_SIDEBAR;
             ctx->needs_redraw = true;
+            /* Force immediate redraw */
+            if (ctx->current_state < UI_STATE_COUNT && state_handlers[ctx->current_state].draw)
+            {
+                state_handlers[ctx->current_state].draw(ctx);
+            }
+            refresh();
         }
         /* ENTER: Selects the highlighted item */
         else if (dir == NAV_SELECT)
@@ -369,8 +376,17 @@ static NavDirection handle_app_state_input(UIContext *ctx, int key)
         /* ESC should go back to content list */
         if (key == 27)
         {
+            // Clean up form state and return to content list
+            ui_form_cleanup(ctx);
+            clear();
             ctx->app_state = STATE_CONTENT_LIST;
             ctx->needs_redraw = true;
+            /* Force immediate redraw */
+            if (ctx->current_state < UI_STATE_COUNT && state_handlers[ctx->current_state].draw)
+            {
+                state_handlers[ctx->current_state].draw(ctx);
+            }
+            refresh();
             return NAV_BACK;
         }
         break;
@@ -514,6 +530,9 @@ static NavDirection state_handle_clients(UIContext *ctx, int key)
     /* Only handle actions when in content list state */
     if (ctx->app_state == STATE_CONTENT_LIST)
     {
+        /* Get the actual count and indices for display */
+        int display_count = ctx->search_results_count > 0 ? ctx->search_results_count : ctx->clients_count;
+
         /* Actions */
         if (key == 'a' || key == 'A')
         {
@@ -523,7 +542,7 @@ static NavDirection state_handle_clients(UIContext *ctx, int key)
         }
         else if (key == 'e' || key == 'E')
         {
-            if (ctx->selected_list_item < ctx->clients_count)
+            if (ctx->selected_list_item < display_count)
             {
                 ctx->current_state = UI_STATE_CLIENTS_EDIT;
                 ctx->app_state = STATE_FORM_INPUT;
@@ -532,7 +551,7 @@ static NavDirection state_handle_clients(UIContext *ctx, int key)
         }
         else if (key == 'd' || key == 'D')
         {
-            if (ctx->selected_list_item < ctx->clients_count)
+            if (ctx->selected_list_item < display_count)
             {
                 ctx->current_state = UI_STATE_CLIENTS_DELETE;
                 ctx->needs_redraw = true;
@@ -542,6 +561,16 @@ static NavDirection state_handle_clients(UIContext *ctx, int key)
         {
             ctx->current_state = UI_STATE_CLIENTS_SEARCH;
             ctx->app_state = STATE_FORM_INPUT;
+            ctx->needs_redraw = true;
+        }
+        else if (key == 'c' || key == 'C')
+        {
+            /* Clear search results */
+            free(ctx->search_results);
+            ctx->search_results = NULL;
+            ctx->search_results_count = 0;
+            ctx->selected_list_item = 0;
+            ctx->scroll_offset = 0;
             ctx->needs_redraw = true;
         }
     }
@@ -668,13 +697,96 @@ static void state_draw_clients_edit(UIContext *ctx)
 
 static NavDirection state_handle_clients_edit(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-    if (dir == NAV_BACK || key == 27)
+    // Initialize form with selected client data if first time
+    if (!ctx->in_input_mode && ctx->selected_list_item < ctx->clients_count)
     {
-        ctx->current_state = UI_STATE_CLIENTS;
+        Client *selected_client = &ctx->clients[ctx->selected_list_item];
+
+        ctx->num_fields = 4;
+        ctx->current_field = 0;
+
+        // Pre-fill form fields with client data FIRST
+        if (!ctx->field_values)
+        {
+            ctx->field_values = calloc(ctx->num_fields, sizeof(char *));
+            for (int i = 0; i < ctx->num_fields; i++)
+            {
+                ctx->field_values[i] = strdup("");
+            }
+        }
+
+        // Copy client data to form fields
+        strcpy(ctx->field_values[0], selected_client->nom);
+        strcpy(ctx->field_values[1], selected_client->prenom);
+        strcpy(ctx->field_values[2], selected_client->email);
+        strcpy(ctx->field_values[3], selected_client->telephone);
+
+        // Now start input mode with the first field value
+        ui_form_start_input(ctx, 1);                     // Start in text input mode
+        strcpy(ctx->input_buffer, ctx->field_values[0]); // Initialize input buffer with first field
+        ctx->input_cursor_pos = strlen(ctx->input_buffer);
+
         ctx->needs_redraw = true;
+        return NAV_NONE;
     }
-    return dir;
+
+    // Handle form input
+    int form_result = ui_form_handle_input(ctx, key);
+
+    if (form_result == FORM_CANCEL)
+    {
+        ui_form_cleanup(ctx);
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->app_state = STATE_CONTENT_LIST;
+        ctx->needs_redraw = true;
+        return NAV_BACK;
+    }
+    else if (form_result == FORM_SUBMIT)
+    {
+        // Validate form
+        if (ctx->field_values[0] && ctx->field_values[1] &&
+            ctx->field_values[2] && ctx->field_values[3])
+        {
+            // Update the selected client
+            Client *client_to_edit = &ctx->clients[ctx->selected_list_item];
+            LOG_INFO("User submitted edit client form for ID %d", client_to_edit->id);
+            LOG_DEBUG("Updating client: %s %s, Email: %s, Tel: %s",
+                      ctx->field_values[0], ctx->field_values[1],
+                      ctx->field_values[2], ctx->field_values[3]);
+
+            // Update client data
+            strncpy(client_to_edit->nom, ctx->field_values[0], sizeof(client_to_edit->nom) - 1);
+            strncpy(client_to_edit->prenom, ctx->field_values[1], sizeof(client_to_edit->prenom) - 1);
+            strncpy(client_to_edit->email, ctx->field_values[2], sizeof(client_to_edit->email) - 1);
+            strncpy(client_to_edit->telephone, ctx->field_values[3], sizeof(client_to_edit->telephone) - 1);
+
+            // Save to file
+            sauvegarder_clients(ctx->clients, ctx->clients_count);
+            LOG_INFO("Client updated successfully");
+
+            // Success message
+            strcpy(ctx->status_message, "Client updated successfully");
+            ctx->status_type = 1; // Success
+            ctx->status_timeout = 60;
+
+            ui_form_cleanup(ctx);
+            ctx->current_state = UI_STATE_CLIENTS;
+            ctx->app_state = STATE_CONTENT_LIST;
+            ctx->needs_redraw = true;
+            return NAV_BACK;
+        }
+        else
+        {
+            // Error - missing required fields
+            LOG_ERROR("Cannot update client: missing required fields");
+            strcpy(ctx->status_message, "All fields are required");
+            ctx->status_type = 3; // Error
+            ctx->status_timeout = 60;
+        }
+    }
+
+    ctx->needs_redraw = true;
+    return NAV_NONE;
 }
 
 static void state_cleanup_clients_edit(UIContext *ctx)
@@ -696,13 +808,68 @@ static void state_draw_clients_search(UIContext *ctx)
 
 static NavDirection state_handle_clients_search(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-    if (dir == NAV_BACK || key == 27)
+    // Initialize search form if first time
+    if (!ctx->in_input_mode)
     {
-        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->num_fields = 1;
+        ctx->current_field = 0;
+        ui_form_start_input(ctx, 1); // Start in text input mode
+
+        if (!ctx->field_values)
+        {
+            ctx->field_values = calloc(ctx->num_fields, sizeof(char *));
+            ctx->field_values[0] = strdup("");
+        }
+
         ctx->needs_redraw = true;
+        return NAV_NONE;
     }
-    return dir;
+
+    // Handle form input
+    int form_result = ui_form_handle_input(ctx, key);
+
+    if (form_result == FORM_CANCEL || key == 27)
+    {
+        ui_form_cleanup(ctx);
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->app_state = STATE_CONTENT_LIST;
+        ctx->needs_redraw = true;
+        return NAV_BACK;
+    }
+    else if (form_result == FORM_SUBMIT)
+    {
+        // Perform search
+        if (ctx->field_values[0] && strlen(ctx->field_values[0]) > 0)
+        {
+            // Simple search implementation - filter clients by name
+            free(ctx->search_results);
+            ctx->search_results = calloc(ctx->clients_count, sizeof(int));
+            ctx->search_results_count = 0;
+
+            for (int i = 0; i < ctx->clients_count; i++)
+            {
+                if (strstr(ctx->clients[i].nom, ctx->field_values[0]) ||
+                    strstr(ctx->clients[i].prenom, ctx->field_values[0]) ||
+                    strstr(ctx->clients[i].email, ctx->field_values[0]))
+                {
+                    ctx->search_results[ctx->search_results_count++] = i;
+                }
+            }
+
+            strcpy(ctx->status_message, "Search completed");
+            ctx->status_type = 1; // Success
+            ctx->status_timeout = 60;
+        }
+
+        ui_form_cleanup(ctx);
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->app_state = STATE_CONTENT_LIST;
+        ctx->needs_redraw = true;
+        return NAV_BACK;
+    }
+
+    ctx->needs_redraw = true;
+    return NAV_NONE;
 }
 
 static void state_cleanup_clients_search(UIContext *ctx)

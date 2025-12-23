@@ -25,24 +25,18 @@ static const char *sidebar_menu_items[] = {
     "Help",
     "Exit"};
 
-static const UIState sidebar_menu_states[] = {
-    UI_STATE_DASHBOARD,
-    UI_STATE_CLIENTS,
-    UI_STATE_ROOMS,
-    UI_STATE_RESERVATIONS,
-    UI_STATE_BILLING,
-    UI_STATE_HELP,
-    UI_STATE_EXIT};
-
 #define SIDEBAR_MENU_COUNT (sizeof(sidebar_menu_items) / sizeof(sidebar_menu_items[0]))
 
 void ui_draw_header(UIContext *ctx, Layout *layout)
 {
+    (void)layout; /* Unused parameter */
+
     if (!ctx->header_win)
         return;
 
     int h, w;
     getmaxyx(ctx->header_win, h, w);
+    (void)h; /* Suppress unused variable warning */
 
     wattron(ctx->header_win, ui_theme_get_pair(COLOR_PAIR_HEADER));
     for (int i = 0; i < w; i++)
@@ -123,6 +117,8 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
 
 void ui_draw_footer(UIContext *ctx, Layout *layout)
 {
+    (void)ctx; /* Unused parameter */
+
     int y, x, h, w;
     ui_layout_get_footer(layout, &y, &x, &h, &w);
 
@@ -132,8 +128,15 @@ void ui_draw_footer(UIContext *ctx, Layout *layout)
         mvaddch(y, x + i, ' ');
     }
 
-    /* Shortcuts */
-    mvprintw(y, x + 2, "Arrows: Navigate | Enter: Select | ESC: Back | Q: Quit | F1: Help");
+    /* Shortcuts - context sensitive */
+    if (ctx->app_state == STATE_FORM_INPUT)
+    {
+        mvprintw(y, x + 2, "TAB/Shift+TAB: Next/Prev Field | Enter: Submit | ESC: Cancel");
+    }
+    else
+    {
+        mvprintw(y, x + 2, "Arrows: Navigate | Enter: Select | ESC: Back | Q: Quit | F1: Help");
+    }
 
     attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
 }
@@ -259,22 +262,42 @@ void ui_draw_clients_list(UIContext *ctx, Layout *layout)
     int widths[] = {5, 20, 20, 30, 15};
     ui_utils_draw_table_header(table_y, x + 1, headers, widths, 5);
 
+    /* Check if we have search results */
+    int display_count = ctx->search_results_count > 0 ? ctx->search_results_count : ctx->clients_count;
+    const int *display_indices = ctx->search_results_count > 0 ? ctx->search_results : NULL;
+
     /* Empty state handling */
-    if (ctx->clients_count == 0)
+    if (display_count == 0)
     {
-        ui_utils_draw_empty_state(y, x, h, w, "clients", 'A');
+        if (ctx->search_results_count > 0)
+        {
+            /* No search results */
+            mvprintw(table_y + 4, x + 2, "No clients found matching your search.");
+        }
+        else
+        {
+            ui_utils_draw_empty_state(y, x, h, w, "clients", 'A');
+        }
         /* Actions bar */
         int actions_y = y + h - 3;
-        mvprintw(actions_y, x + 1, "[A]dd  [ESC]Back");
+        mvprintw(actions_y, x + 1, "[A]dd  [S]earch  [ESC]Back");
         return;
+    }
+
+    /* Show search info if applicable */
+    if (ctx->search_results_count > 0)
+    {
+        attron(ui_theme_get_pair(COLOR_PAIR_DIM));
+        mvprintw(table_y - 1, x + 1, "Search results: %d clients found", ctx->search_results_count);
+        attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
     }
 
     /* Table rows */
     int visible_rows = h - 6;
     int start_idx = ctx->scroll_offset;
     int end_idx = start_idx + visible_rows;
-    if (end_idx > ctx->clients_count)
-        end_idx = ctx->clients_count;
+    if (end_idx > display_count)
+        end_idx = display_count;
 
     for (int i = start_idx; i < end_idx; i++)
     {
@@ -282,12 +305,15 @@ void ui_draw_clients_list(UIContext *ctx, Layout *layout)
         bool selected = (ctx->selected_list_item == i);
         bool even = (i % 2 == 0);
 
+        /* Get the actual client index */
+        int client_idx = display_indices ? display_indices[i] : i;
+
         char id_str[16], nom_str[32], prenom_str[32], email_str[64], tel_str[32];
-        snprintf(id_str, sizeof(id_str), "%d", ctx->clients[i].id);
-        strncpy(nom_str, ctx->clients[i].nom, sizeof(nom_str));
-        strncpy(prenom_str, ctx->clients[i].prenom, sizeof(prenom_str));
-        strncpy(email_str, ctx->clients[i].email, sizeof(email_str));
-        strncpy(tel_str, ctx->clients[i].telephone, sizeof(tel_str));
+        snprintf(id_str, sizeof(id_str), "%d", ctx->clients[client_idx].id);
+        strncpy(nom_str, ctx->clients[client_idx].nom, sizeof(nom_str));
+        strncpy(prenom_str, ctx->clients[client_idx].prenom, sizeof(prenom_str));
+        strncpy(email_str, ctx->clients[client_idx].email, sizeof(email_str));
+        strncpy(tel_str, ctx->clients[client_idx].telephone, sizeof(tel_str));
 
         const char *values[] = {id_str, nom_str, prenom_str, email_str, tel_str};
         ui_utils_draw_table_row(row_y, x + 1, values, widths, 5, selected, even);
@@ -360,6 +386,8 @@ void ui_draw_clients_edit(UIContext *ctx, Layout *layout)
 
 void ui_draw_clients_search(UIContext *ctx, Layout *layout)
 {
+    (void)ctx; /* Unused parameter */
+
     int y, x, h, w;
     ui_layout_get_content(layout, &y, &x, &h, &w);
 
@@ -452,7 +480,14 @@ void ui_draw_rooms_list(UIContext *ctx, Layout *layout)
 
     /* Actions bar */
     int actions_y = y + h - 3;
-    mvprintw(actions_y, x + 1, "[A]dd  [E]dit  [D]elete  [S]earch  [ESC]Back");
+    if (ctx->search_results_count > 0)
+    {
+        mvprintw(actions_y, x + 1, "[A]dd  [E]dit  [D]elete  [S]earch  [C]lear Search  [ESC]Back");
+    }
+    else
+    {
+        mvprintw(actions_y, x + 1, "[A]dd  [E]dit  [D]elete  [S]earch  [ESC]Back");
+    }
 }
 
 void ui_draw_rooms_add(UIContext *ctx, Layout *layout)
@@ -595,6 +630,8 @@ void ui_draw_reservations_list(UIContext *ctx, Layout *layout)
 
 void ui_draw_reservations_add(UIContext *ctx, Layout *layout)
 {
+    (void)ctx; /* Unused parameter */
+
     int y, x, h, w;
     ui_layout_get_content(layout, &y, &x, &h, &w);
 
@@ -658,6 +695,8 @@ void ui_draw_billing_list(UIContext *ctx, Layout *layout)
 
 void ui_draw_billing_create(UIContext *ctx, Layout *layout)
 {
+    (void)ctx; /* Unused parameter */
+
     int y, x, h, w;
     ui_layout_get_content(layout, &y, &x, &h, &w);
 
@@ -675,6 +714,8 @@ void ui_draw_billing_create(UIContext *ctx, Layout *layout)
 
 void ui_draw_help(UIContext *ctx, Layout *layout)
 {
+    (void)ctx; /* Unused parameter */
+
     int y, x, h, w;
     ui_layout_get_content(layout, &y, &x, &h, &w);
 

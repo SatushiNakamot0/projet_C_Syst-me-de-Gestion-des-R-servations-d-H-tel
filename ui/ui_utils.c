@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <time.h>
 #include <ncurses.h>
 #include <stdbool.h>
@@ -320,6 +321,19 @@ void ui_utils_show_status(UIContext *ctx, int type, const char *format, ...)
 
     ctx->status_type = type;
     ctx->status_timeout = ui_utils_get_status_timeout(type);
+}
+
+void ui_set_status(UIContext *ctx, const char *message, int type)
+{
+    if (!ctx || !message)
+        return;
+
+    strncpy(ctx->status_message, message, sizeof(ctx->status_message) - 1);
+    ctx->status_message[sizeof(ctx->status_message) - 1] = '\0';
+
+    ctx->status_type = type;
+    ctx->status_timeout = ui_utils_get_status_timeout(type);
+    ctx->needs_redraw = true; /* Force redraw to show status immediately */
 }
 
 int ui_utils_get_status_timeout(int message_type)

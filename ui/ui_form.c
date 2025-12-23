@@ -1,6 +1,7 @@
 #include "ui_form.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <ncurses.h>
 
 void ui_form_start_input(UIContext *ctx, int mode)
@@ -117,6 +118,31 @@ int ui_form_handle_input(UIContext *ctx, int key)
         }
         return FORM_CONTINUE;
 
+    case '\t': // TAB (forwards)
+        // Save current field
+        if (ctx->field_values[ctx->current_field])
+        {
+            free(ctx->field_values[ctx->current_field]);
+        }
+        ctx->field_values[ctx->current_field] = strdup(ctx->input_buffer);
+
+        if (ctx->current_field < ctx->num_fields - 1)
+        {
+            // Move to next field
+            ctx->current_field++;
+            strncpy(ctx->input_buffer,
+                    ctx->field_values[ctx->current_field] ? ctx->field_values[ctx->current_field] : "",
+                    sizeof(ctx->input_buffer) - 1);
+            ctx->input_cursor_pos = strlen(ctx->input_buffer);
+            ctx->input_modified = false;
+            return FORM_CONTINUE;
+        }
+        else
+        {
+            // Last field - submit form
+            return FORM_SUBMIT;
+        }
+
     case KEY_DOWN:
     case '\n':
     case KEY_ENTER:
@@ -195,4 +221,5 @@ void ui_form_cleanup(UIContext *ctx)
     ctx->num_fields = 0;
     ctx->current_field = 0;
     ui_form_stop_input(ctx);
+    curs_set(0); // Ensure cursor is hidden when leaving forms
 }
