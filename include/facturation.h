@@ -1,6 +1,7 @@
 #ifndef FACTURATION_H
 #define FACTURATION_H
 
+<<<<<<< HEAD
 #include "structures.h"  // pour la structure Client et Facture
 
 #define MAX_FACTURES 100  // Nombre maximum de factures
@@ -27,5 +28,17 @@ void afficher_factures(const Facture factures[], int count, const Client clients
 
 // Sauvegarde des factures dans un fichier texte
 void sauvegarder_factures(const Facture factures[], int count);
+=======
+#include "structures.h"
+
+/* Prototypes des fonctions */
+float calculer_total(int nbNuits, float prixNuit);
+
+void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients);
+
+void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients);
+
+void sauvegarder_factures(Facture *factures, int count);
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
 
 #endif

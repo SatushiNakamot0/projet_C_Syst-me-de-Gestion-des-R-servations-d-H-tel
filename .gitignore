@@ -1,0 +1,12 @@
+# Build outputs
+/build/
+/obj/
+
+# Editor settings
+.vscode/
+
+# OS junk
+.DS_Store
+
+# Windows binaries
+*.exe

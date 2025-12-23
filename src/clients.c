@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "clients.h"
-#include "structures.h" 
-
+#include "../include/clients.h"
+#include "../include/structures.h"
+#include "../include/fichiers.h"  // For sauvegarder_clients
 
 void ajouter_client(Client clients[], int *count) {
     Client nouveau_client;

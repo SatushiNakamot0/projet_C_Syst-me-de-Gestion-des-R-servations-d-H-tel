@@ -1,31 +1,49 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "structures.h"
-#include "fichiers.h"
+#include "ui/ui.h"
+#include "ui/ui_state.h"
+ #include "include/debug.h"
 
-int main()
+/* ============================================================================
+ * MAIN ENTRY POINT
+ * ============================================================================
+ * Hna kan-initializiw l-TUI system w kan-chghlou l-loop dyal l-application.
+ * ============================================================================ */
+
+int main(void)
 {
-    printf("Bienvenue dans le Système de Gestion des Réservations d’Hôtel\n");
+    LogConfig log_cfg;
+    log_cfg.min_level = LOG_LEVEL_INFO;
+    log_cfg.output = stderr;
+    log_cfg.log_file = NULL;
+    log_cfg.use_colors = 1;
+    (void)log_init(&log_cfg);
+    atexit(log_shutdown);
 
-    // Load data
-    Client clients[100];
-    int client_count = 0;
-    charger_clients(clients, &client_count);
+    /* Kan-creyiw UI context */
+    UIContext *ctx = ui_context_create();
+    if (!ctx) {
+        LOG_ERROR("Failed to create UI context");
+        return EXIT_FAILURE;
+    }
+    
+    /* Kan-initializiw l-UI */
+    if (!ui_init(ctx)) {
+        LOG_ERROR("Failed to initialize UI");
+        ui_context_destroy(ctx);
+        return EXIT_FAILURE;
+    }
 
-    Chambre chambres[50];
-    int chambre_count = 0;
-    charger_chambres(chambres, &chambre_count);
+    LOG_INFO("Application started");
+    
+    /* Kan-chghlou l-loop l-kbir dyal l-app */
+    ui_run(ctx);
+    
+    /* Kan-nqaydo w kan-nsddo kolchi b nddaaf */
+    ui_cleanup(ctx);
+    ui_context_destroy(ctx);
 
-    Reservation reservations[100];
-    int reservation_count = 0;
-    charger_reservations(reservations, &reservation_count);
-
-    Facture factures[100];
-    int facture_count = 0;
-    charger_factures(factures, &facture_count);
-
-    // TODO: Implement menu system
-
-    printf("Programme terminé.\n");
-    return 0;
+    LOG_INFO("Application stopped");
+    
+    return EXIT_SUCCESS;
 }

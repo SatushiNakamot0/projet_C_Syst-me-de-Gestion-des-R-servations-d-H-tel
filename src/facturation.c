@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "facturation.h"
-#include "clients.h"
-#include "structures.h"
+#include "../include/structures.h"
+#include "../include/facturation.h"
+#include "../include/fichiers.h"
+
+/* Déclaration des fonctions */
+void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients);
+void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients);
 
 /* Calcul du montant total */
-float calculer_total(int nbNuits, float prixNuit) {
+float calculer_total(int nbNuits, float prixNuit)
+{
     return nbNuits * prixNuit;
 }
 
@@ -24,13 +29,26 @@ void get_nom_client(int idClient, const Client clients[], int nbClients, char *n
 }
 
 /* Création d'une facture */
+<<<<<<< HEAD
 void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients) {
     if (*count >= MAX_FACTURES) {
+=======
+void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients)
+{
+    Facture nouvelle_facture;
+    int id_client;
+    int client_trouve = 0;
+    int max_id = 0;
+
+    if (*count >= MAX_FACTURES)
+    {
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
         printf("\nErreur : Limite de factures atteinte.\n");
         return;
     }
 
-    if (nbClients == 0) {
+    if (nbClients == 0)
+    {
         printf("\nErreur : Aucun client enregistre.\n");
         return;
     }
@@ -44,20 +62,28 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
 
     // Saisie ID client
     printf("Entrez l'ID du client : ");
+<<<<<<< HEAD
     if (scanf("%d", &id_client) != 1) {
         printf("Erreur : saisie invalide.\n");
         while(getchar() != '\n');
         return;
     }
+=======
+    if (scanf("%d", &id_client) != 1)
+        return;
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
 
-    for (int i = 0; i < nbClients; i++) {
-        if (clients[i].id == id_client) {
+    for (int i = 0; i < nbClients; i++)
+    {
+        if (clients[i].id == id_client)
+        {
             client_trouve = 1;
             break;
         }
     }
 
-    if (!client_trouve) {
+    if (!client_trouve)
+    {
         printf("Erreur : Client introuvable.\n");
         return;
     }
@@ -78,11 +104,20 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
         return;
     }
 
+<<<<<<< HEAD
     // Calcul du total
     nouvelle_facture.total = calculer_total(nouvelle_facture.nbNuits, nouvelle_facture.prixNuit);
 
     // Calcul ID facture
     for (int i = 0; i < *count; i++) {
+=======
+    nouvelle_facture.total = calculer_total(
+        nouvelle_facture.nbNuits,
+        nouvelle_facture.prixNuit);
+
+    for (int i = 0; i < *count; i++)
+    {
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
         if (factures[i].idFacture > max_id)
             max_id = factures[i].idFacture;
     }
@@ -100,8 +135,10 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
 }
 
 /* Affichage des factures */
-void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients) {
-    if (count == 0) {
+void afficher_factures(const Facture factures[], int count, const Client clients[], int nbClients)
+{
+    if (count == 0)
+    {
         printf("\nAucune facture enregistree.\n");
         return;
     }
@@ -110,9 +147,26 @@ void afficher_factures(const Facture factures[], int count, const Client clients
     printf(" LISTE DES FACTURES (%d)\n", count);
     printf("================================================================================\n");
 
+<<<<<<< HEAD
     for (int i = 0; i < count; i++) {
         char nom[50], prenom[50];
         get_nom_client(factures[i].idClient, clients, nbClients, nom, prenom);
+=======
+    for (int i = 0; i < count; i++)
+    {
+        const char *nom = "Inconnu";
+        const char *prenom = "";
+
+        for (int j = 0; j < nbClients; j++)
+        {
+            if (clients[j].id == factures[i].idClient)
+            {
+                nom = clients[j].nom;
+                prenom = clients[j].prenom;
+                break;
+            }
+        }
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
 
         printf("Facture ID: %d | Client: %s %s | Nuits: %d | Prix/Nuit: %.2f | Total: %.2f\n",
                factures[i].idFacture,
@@ -124,6 +178,7 @@ void afficher_factures(const Facture factures[], int count, const Client clients
     }
 
     printf("================================================================================\n");
+<<<<<<< HEAD
 }
 
 /* Sauvegarde des factures dans un fichier */
@@ -145,3 +200,6 @@ void sauvegarder_factures(const Facture factures[], int count) {
 
     fclose(f);
 }
+=======
+}
+>>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
