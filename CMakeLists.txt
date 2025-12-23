@@ -23,13 +23,15 @@ file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS
 add_executable(hotel_app ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
 # Dynamic library handling for cross-platform compatibility
-find_package(Curses REQUIRED)
+if(NOT WIN32)
+    find_package(Curses REQUIRED)
+endif()
 
 # Include directories - relative paths only
 target_include_directories(hotel_app
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CURSES_INCLUDE_DIRS}
+        $<$<NOT:$<PLATFORM_ID:Windows>>:${CURSES_INCLUDE_DIRS}>
 )
 
 # Platform-specific library linking
@@ -47,8 +49,8 @@ if(WIN32)
         target_include_directories(hotel_app PRIVATE "${MSYS2_PREFIX}/include/ncurses")
         
         # Find the ncurses library dynamically
-        find_library(NCURSES_LIB 
-            NAMES ncursesw libncursesw
+        find_library(NCURSES_LIB
+            NAMES ncursesw libncursesw ncurses
             PATHS "${MSYS2_PREFIX}/lib"
             DOC "NCurses library"
         )
@@ -59,8 +61,9 @@ if(WIN32)
             message(FATAL_ERROR "NCurses library not found in ${MSYS2_PREFIX}/lib")
         endif()
     else()
-        # Fallback to standard Curses library
-        target_link_libraries(hotel_app PRIVATE ${CURSES_LIBRARIES})
+        # Fallback to standard ncurses library
+        target_include_directories(hotel_app PRIVATE /mingw64/include /mingw64/include/ncurses)
+        target_link_libraries(hotel_app PRIVATE ncurses)
     endif()
 else()
     # Linux/Unix: Use standard Curses library
