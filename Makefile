@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Iinclude -Iui -IC:/msys64/ucrt64/include/ncurses -IC:/msys64/ucrt64/include -Wall -Wextra -pedantic -std=c99
-LDFLAGS = -LC:/msys64/ucrt64/lib -lncursesw
+CFLAGS = -Iinclude -Iui -Wall -Wextra -pedantic -std=c99
+LDFLAGS = -lpdcurses
 OBJ_DIR = obj
 SRC_DIR = src
 UI_DIR = ui

@@ -1,7 +1,7 @@
 #ifndef UI_THEME_H
 #define UI_THEME_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 /* ============================================================================
  * UI THEME SYSTEM
