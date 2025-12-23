@@ -61,9 +61,9 @@ if(WIN32)
             message(FATAL_ERROR "NCurses library not found in ${MSYS2_PREFIX}/lib")
         endif()
     else()
-        # Fallback to standard ncurses library
-        target_include_directories(hotel_app PRIVATE /mingw64/include /mingw64/include/ncurses)
-        target_link_libraries(hotel_app PRIVATE ncurses)
+        # Fallback to PDCurses for Windows
+        target_include_directories(hotel_app PRIVATE /mingw64/include)
+        target_link_libraries(hotel_app PRIVATE pdcurses)
     endif()
 else()
     # Linux/Unix: Use standard Curses library
