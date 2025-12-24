@@ -1,6 +1,7 @@
 #include "ui_input.h"
 #include <ncurses.h>
 #include <string.h>
+#include <ctype.h>
 
 /* ============================================================================
  * UI INPUT IMPLEMENTATION
@@ -117,6 +118,54 @@ int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len)
         wrefresh(win);
     }
 }
+
+/* Safe string reader that GUARANTEES no double-echo
+ * usage: ui_read_string_safe(win, y, x, buffer, 30);
+ */
+void ui_read_string_safe(WINDOW *win, int y, int x, char *buffer, int max_len) {
+    int len = strlen(buffer);
+    int ch;
+    // 1. FORCE STATE (The Nuclear Option)
+    noecho();
+    cbreak();
+    curs_set(1);
+    keypad(win, TRUE);
+    // 2. Draw initial buffer (in case of edit mode)
+    mvwprintw(win, y, x, "%s", buffer);
+    wmove(win, y, x + len);
+    wrefresh(win);
+    // 3. The Controlled Loop
+    while (1) {
+        ch = wgetch(win);
+        if (ch == '\n' || ch == KEY_ENTER) {
+            break; // Submit
+        } else if (ch == 27) { // ESC
+            return; // Cancel (keep buffer as is)
+        } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+            if (len > 0) {
+                len--;
+                buffer[len] = '\0';
+                // Manual Erase: Move back, print space, move back
+                mvwaddch(win, y, x + len, ' ');
+                wmove(win, y, x + len);
+            }
+        } else if (isprint(ch)) {
+            if (len < max_len - 1) {
+                // Manual Print: ONLY HERE.
+                mvwaddch(win, y, x + len, ch);
+                buffer[len] = ch;
+                len++;
+                buffer[len] = '\0';
+            }
+        }
+        wrefresh(win);
+    }
+    // Ensure string is null-terminated
+    buffer[len] = '\0';
+    // 4. Restore Cursor
+    curs_set(0);
+}
+
 
 void ui_input_process_form_input(UIContext *ctx, int key)
 {

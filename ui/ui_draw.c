@@ -21,6 +21,15 @@ void ui_draw_header(UIContext *ctx, Layout *layout)
     if (!ctx->header_win)
         return;
 
+    static time_t last_update = 0;
+    time_t now = time(NULL);
+    
+    // Only redraw header once per second to avoid flicker
+    if (now == last_update) {
+        return; // Skip redraw if same second
+    }
+    last_update = now;
+
     int h, w;
     getmaxyx(ctx->header_win, h, w);
     (void)h; /* Suppress unused variable warning */
@@ -72,7 +81,7 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
         attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
     }
 
-    /* Select Menu based on Role */
+    /* Khtar menu 3la 7sab role (Select Menu) */
     const char **current_menu;
     int menu_count;
 
@@ -87,44 +96,40 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
         menu_count = 7;
     }
 
-    /* Draw menu items */
+    /* Rsm menu items (Draw Items) */
     int start_y = y + 2;
+    // Hada l loop l jdid bach nsl7o l mochkil dyal l bleu (Bleeding Fix)
     for (int i = 0; i < menu_count && i < h - 4; i++)
     {
         int item_y = start_y + i;
         bool selected = (ctx->selected_menu_item == i);
 
-        if (ctx->app_state != STATE_SIDEBAR)
-        {
-            /* Dim the entire sidebar when not focused */
-            attron(ui_theme_get_pair(COLOR_PAIR_DIM));
-        }
-        else if (selected)
-        {
-            attron(ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED));
-            for (int j = 1; j < w - 1; j++)
-            {
-                mvaddch(item_y, x + j, ' ');
-            }
-        }
-        else
-        {
-            attron(ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
-        }
+        if (selected) {
+            if (ctx->app_state == STATE_SIDEBAR)
+                 wattron(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED)); // Cha3l l blue
+            else 
+                 wattron(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR)); // Or whatever dim style
 
-        mvprintw(item_y, x + 2, "%s", current_menu[i]);
+            // %-18s kay3mmer l faragh b les espaces bach yji l loun m9ad
+            mvprintw(item_y, x + 2, "%-18s", current_menu[i]);
+            
+            if (ctx->app_state == STATE_SIDEBAR)
+                 wattroff(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED)); // Tfi l blue DGHYA!
+            else
+                 wattroff(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
+        } else {
+            // Ktb l menu 3adi bla loun
+            if (ctx->app_state != STATE_SIDEBAR)
+                wattron(stdscr, ui_theme_get_pair(COLOR_PAIR_DIM));
+            else
+                wattron(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
 
-        if (ctx->app_state != STATE_SIDEBAR)
-        {
-            attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
-        }
-        else if (selected)
-        {
-            attroff(ui_theme_get_pair(COLOR_PAIR_SIDEBAR_SELECTED));
-        }
-        else
-        {
-            attroff(ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
+            mvprintw(item_y, x + 2, "%-18s", current_menu[i]);
+
+            if (ctx->app_state != STATE_SIDEBAR)
+                wattroff(stdscr, ui_theme_get_pair(COLOR_PAIR_DIM));
+            else
+                wattroff(stdscr, ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
         }
     }
 }

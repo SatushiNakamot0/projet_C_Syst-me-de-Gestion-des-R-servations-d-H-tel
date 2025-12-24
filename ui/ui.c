@@ -994,10 +994,22 @@ static void state_draw_billing(UIContext *ctx)
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
 
-    ui_draw_header(ctx, &layout);
-    ui_draw_sidebar(ctx, &layout);
-    draw_content_window(ctx, &layout);
-    ui_draw_footer(ctx, &layout);
+    if (ctx->current_state != ctx->previous_state || ctx->needs_redraw)
+    {
+        // First draw standard layout (Background)
+        ui_draw_header(ctx, &layout);
+        ui_draw_sidebar(ctx, &layout);
+        ui_draw_billing_list(ctx, &layout); // Draw base list first
+        ui_draw_footer(ctx, &layout);
+        
+        // Then launch the interactive menu immediately
+        // Note: This is a blocking call, so it pauses the main loop
+        if(ctx->current_state != ctx->previous_state) {
+            show_billing_menu(ctx);
+            // After menu returns (User pressed ESC), we can stay here or go back to Dashboard
+            // Let's stay in Billing List state but without the menu popup
+        }
+    }
     ui_draw_status_message(ctx, &layout);
 }
 
@@ -1005,10 +1017,21 @@ static NavDirection state_handle_billing(UIContext *ctx, int key)
 {
     NavDirection dir = ui_input_process_key(ctx, key);
 
-    if (key == 'c' || key == 'C')
+    if (key == 'm' || key == 'M' || key == 'c' || key == 'C' || key == 'v' || key == 'V') {
+         show_billing_menu(ctx);
+         ctx->needs_redraw = true;
+         return NAV_NONE;
+    }
+
+
+
+    if (key == 27) // ESC
     {
-        ctx->current_state = UI_STATE_BILLING_CREATE;
-        ctx->needs_redraw = true;
+         ctx->current_state = UI_STATE_DASHBOARD;
+         ctx->selected_menu_item = 4; // Sidebar Billing
+         ctx->app_state = STATE_SIDEBAR;
+         ctx->needs_redraw = true;
+         return NAV_BACK;
     }
     else if (dir == NAV_BACK)
     {
@@ -1221,7 +1244,9 @@ void ui_run(UIContext *ctx)
             /* Only clear if NOT a modal/form (preserves background) */
             if (!is_form_state(state))
             {
-                erase();
+                // Removed erase() to prevent header flicker
+                // Windows will handle their own clearing
+                // erase(); 
             }
 
             /* ISOLATION: Do NOT draw dashboard if in a modal state */

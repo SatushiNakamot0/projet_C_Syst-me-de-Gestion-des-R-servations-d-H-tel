@@ -1,5 +1,6 @@
 #include "ui_state.h"
 #include "ui_clients.h"
+#include "ui_input.h"
 #include <ncurses.h>
 #include <string.h>
 #include <stdlib.h>
@@ -293,9 +294,15 @@ int handle_clients_input(UIContext *ctx, int key)
         int display_count = ctx->search_results_count > 0 ? ctx->search_results_count : ctx->clients_count;
         
         if (key == 'a' || key == 'A') {
-             // ADD (State based)
-             ctx->current_state = UI_STATE_CLIENTS_ADD;
-             ctx->app_state = STATE_FORM_INPUT;
+             // ADD (Modal Safe)
+             int old_count = ctx->clients_count;
+             show_add_client_form(ctx->clients, &ctx->clients_count);
+             
+             if (ctx->clients_count > old_count) {
+                 sauvegarder_clients(ctx->clients, ctx->clients_count);
+                 strcpy(ctx->status_message, "Client Added Successfully");
+                 ctx->status_type=1;
+             }
              ctx->needs_redraw = true;
         }
         else if (key == 'e' || key == 'E')
@@ -383,4 +390,134 @@ int handle_clients_input(UIContext *ctx, int key)
         }
     }
     return NAV_NONE;
+}
+
+/**
+ * Displays the add client form using safe input handling
+ * Uses the new ui_read_string_safe to prevent double typing issues
+ * (Replaces any unsafe implementation)
+ */
+void show_add_client_form(Client *clients, int *count) {
+    // 1. Setup Window & Dim Background
+    // Dim background
+    attron(ui_theme_get_pair(COLOR_PAIR_DIM));
+    for (int y = 0; y < LINES; y++) {
+        for (int x = 0; x < COLS; x++) {
+            mvaddch(y, x, ' ');
+        }
+    }
+    attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
+    refresh();
+
+    int height = 15;
+    int width = 50;
+    int start_y = (LINES - height) / 2;
+    int start_x = (COLS - width) / 2;
+
+    WINDOW *form_win = newwin(height, width, start_y, start_x);
+    if (!form_win) return;
+
+    // Hna kanwjdo blasa khawya l data
+    Client c = {0}; 
+    int current_field = 0;
+    bool running = true;
+
+    // Standard labels
+    const char *labels[] = {"Nom:", "Prenom:", "Email:", "Tel:"};
+    
+    // Enable keypad for the window
+    keypad(form_win, TRUE);
+
+    while(running) {
+        // 1. Kanrsmou l form
+        werase(form_win);
+        box(form_win, 0, 0);
+        mvwprintw(form_win, 1, 2, "AJOUTER NOUVEAU CLIENT");
+        
+        // Draw static labels & current values
+        // Nom
+        mvwprintw(form_win, 4, 2, "%s", labels[0]);
+        mvwprintw(form_win, 4, 12, "%s", c.nom);
+        
+        // Prenom
+        mvwprintw(form_win, 6, 2, "%s", labels[1]);
+        mvwprintw(form_win, 6, 12, "%s", c.prenom);
+        
+        // Email
+        mvwprintw(form_win, 8, 2, "%s", labels[2]);
+        mvwprintw(form_win, 8, 12, "%s", c.email);
+        
+        // Tel
+        mvwprintw(form_win, 10, 2, "%s", labels[3]);
+        mvwprintw(form_win, 10, 12, "%s", c.telephone);
+
+        mvwprintw(form_win, height - 2, 2, "ESC: Cancel");
+        
+        wrefresh(form_win);
+
+        // 2. Hna fin kan9raw l input b tari9a amina (Safe Mode)
+        if (current_field == 0) {
+             // Smiya
+             mvwprintw(form_win, 4, 2, "> %s", labels[0]); // Indicate focus
+             wrefresh(form_win);
+             ui_read_string_safe(form_win, 4, 12, c.nom, 19);
+             current_field++;
+        }
+        else if (current_field == 1) {
+             // Knya
+             mvwprintw(form_win, 6, 2, "> %s", labels[1]);
+             wrefresh(form_win);
+             ui_read_string_safe(form_win, 6, 12, c.prenom, 19);
+             current_field++;
+        }
+        else if (current_field == 2) {
+             // Email
+             mvwprintw(form_win, 8, 2, "> %s", labels[2]);
+             wrefresh(form_win);
+             ui_read_string_safe(form_win, 8, 12, c.email, 29);
+             current_field++;
+        }
+        else if (current_field == 3) {
+             // Tele
+             mvwprintw(form_win, 10, 2, "> %s", labels[3]);
+             wrefresh(form_win);
+             ui_read_string_safe(form_win, 10, 12, c.telephone, 14);
+             
+             // Confirm Save
+             mvwprintw(form_win, 12, 2, "Press ENTER to Save, ESC to Cancel");
+             wrefresh(form_win);
+             
+             int ch = wgetch(form_win);
+             if (ch == '\n' || ch == KEY_ENTER) {
+                 // Save logic
+                 int res = client_ajouter(clients, count, &c);
+                 if (res == 0) {
+                     mvwprintw(form_win, 13, 2, "Client Added!");
+                     wrefresh(form_win);
+                     napms(1000);
+                 } else if (res == -2) {
+                     mvwprintw(form_win, 13, 2, "Error: Email Exists!");
+                     wrefresh(form_win);
+                     napms(1000);
+                     current_field = 2; // Go back to email
+                     continue;
+                 } else {
+                     mvwprintw(form_win, 13, 2, "Error Adding Client!");
+                     wrefresh(form_win);
+                     napms(1000);
+                 }
+                 break;
+             } else if (ch == 27) { // ESC
+                 break;
+             }
+             // Reset to review if not saved/cancelled
+             current_field = 0;
+        }
+    }
+    
+    // ... cleanup ...
+    delwin(form_win);
+    // Restore cursor state if needed
+    curs_set(0);
+    clear(); // Clear screen to force redraw of previous state
 }

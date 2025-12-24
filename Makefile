@@ -27,7 +27,8 @@ SRCS = main.c \
        $(UI_DIR)/ui_clients.c \
        $(UI_DIR)/ui_rooms.c \
        $(UI_DIR)/ui_login.c \
-       $(UI_DIR)/ui_client_portal.c
+       $(UI_DIR)/ui_client_portal.c \
+       $(UI_DIR)/ui_billing.c
 
 # Object files
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)

@@ -21,4 +21,9 @@ void ui_cleanup(UIContext *ctx);
 /* Force a full redraw */
 void ui_redraw(UIContext *ctx);
 
+/** 
+ * Shows the billing menu 
+ */
+void show_billing_menu(UIContext *ctx);
+
 #endif /* UI_H */

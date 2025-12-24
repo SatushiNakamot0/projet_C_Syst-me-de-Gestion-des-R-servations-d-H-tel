@@ -31,4 +31,10 @@ int ui_input_get_key(void);
  */
 int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len);
 
+/* Safe string reader that guarantees no double-echo
+ * usage: ui_read_string_safe(win, y, x, buffer, 30);
+ */
+void ui_read_string_safe(WINDOW *win, int y, int x, char *buffer, int max_len);
+
+
 #endif /* UI_INPUT_H */

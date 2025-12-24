@@ -16,4 +16,9 @@ int handle_clients_input(UIContext *ctx, int key);
  */
 int show_client_search_modal(Client clients[], int clients_count);
 
+/**
+ * Shows the add client form (Safe Input Version)
+ */
+void show_add_client_form(Client *clients, int *count);
+
 #endif /* UI_CLIENTS_H */

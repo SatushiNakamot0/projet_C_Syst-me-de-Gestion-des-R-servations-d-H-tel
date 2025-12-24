@@ -22,7 +22,7 @@ int main(void)
     (void)log_init(&log_cfg);
     atexit(log_shutdown);
 
-    /* Nbdaw b tkhli9 dossier dyal data */
+    /* Nbdaw nsawbo dossier dyal data */
     if (!init_data_directory()) {
         LOG_ERROR("Failed to initialize data directory");
         return EXIT_FAILURE;
