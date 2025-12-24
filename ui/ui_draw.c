@@ -15,18 +15,6 @@
  * Professional screen drawing functions with consistent styling.
  * ============================================================================ */
 
-/* Menu items for sidebar */
-static const char *sidebar_menu_items[] = {
-    "Dashboard",
-    "Clients",
-    "Rooms",
-    "Reservations",
-    "Billing",
-    "Help",
-    "Exit"};
-
-#define SIDEBAR_MENU_COUNT (sizeof(sidebar_menu_items) / sizeof(sidebar_menu_items[0]))
-
 void ui_draw_header(UIContext *ctx, Layout *layout)
 {
     (void)layout; /* Unused parameter */
@@ -57,6 +45,18 @@ void ui_draw_header(UIContext *ctx, Layout *layout)
     wrefresh(ctx->header_win);
 }
 
+/* Menu items for sidebar */
+/* Dynamic Menu Items */
+static const char *menu_admin[] = {
+    "Dashboard", "Clients", "Rooms", "Reservations", "Billing", "Users [F2]", "Logout"
+};
+static const char *menu_receptionist[] = {
+    "Dashboard", "Clients", "Rooms", "Reservations", "Billing", "Logout"
+};
+static const char *menu_client[] = {
+    "Dashboard", "Book Room", "My Reservations", "Logout"
+};
+
 void ui_draw_sidebar(UIContext *ctx, Layout *layout)
 {
     int y, x, h, w;
@@ -73,9 +73,24 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
         attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
     }
 
+    /* Select Menu based on Role */
+    const char **current_menu;
+    int menu_count;
+
+    if (strcmp(ctx->current_role, "client") == 0) {
+        current_menu = menu_client;
+        menu_count = 4;
+    } else if (strcmp(ctx->current_role, "receptionist") == 0) {
+        current_menu = menu_receptionist;
+        menu_count = 6;
+    } else { // Admin
+        current_menu = menu_admin;
+        menu_count = 7;
+    }
+
     /* Draw menu items */
     int start_y = y + 2;
-    for (int i = 0; i < (int)SIDEBAR_MENU_COUNT && i < h - 4; i++)
+    for (int i = 0; i < menu_count && i < h - 4; i++)
     {
         int item_y = start_y + i;
         bool selected = (ctx->selected_menu_item == i);
@@ -98,7 +113,7 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
             attron(ui_theme_get_pair(COLOR_PAIR_SIDEBAR));
         }
 
-        mvprintw(item_y, x + 2, "%s", sidebar_menu_items[i]);
+        mvprintw(item_y, x + 2, "%s", current_menu[i]);
 
         if (ctx->app_state != STATE_SIDEBAR)
         {

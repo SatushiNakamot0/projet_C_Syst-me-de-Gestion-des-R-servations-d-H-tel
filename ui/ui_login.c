@@ -186,7 +186,7 @@ static int read_password_masked(WINDOW *win, int y, int x, char *buffer, int max
 
 bool show_login_screen(UIContext *ctx)
 {
-    (void)ctx; // Unused for now, but available if needed
+    // (void)ctx; // Now Used
     
     // Flush input buffer to prevent stray keystrokes from auto-cancelling
     flushinp();
@@ -266,14 +266,28 @@ bool show_login_screen(UIContext *ctx)
         }
         
         // Validation
-        if (auth_login(username, password, NULL)) {
+        if (auth_login(username, password, ctx->current_role))
+        {
+            strcpy(ctx->current_username, username);
             logged_in = true;
             running = false;
-        } else {
-            strcpy(msg, "Invalid Credentials!");
-            memset(username, 0, sizeof(username));
-            memset(password, 0, sizeof(password));
+            
+            // Role redirection
+            if(strcmp(ctx->current_role, "client") == 0) {
+                 ctx->current_state = UI_STATE_CLIENT_DASHBOARD;
+            } else {
+                 ctx->current_state = UI_STATE_DASHBOARD;
+            }
+        }
+        else
+        {
+            // Error
+            attron(COLOR_PAIR(3)); // Red
+            mvwprintw(win, 11, 2, "Invalid credentials!");
+            attroff(COLOR_PAIR(3));
+            wrefresh(win);
             beep();
+            napms(500); // Small pause to show error
         }
     }
     

@@ -7,6 +7,7 @@
 #include "ui_reservations.h"
 #include "ui_clients.h"
 #include "ui_rooms.h"
+#include "ui_client_portal.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -105,6 +106,15 @@ static void state_draw_help(UIContext *ctx);
 static NavDirection state_handle_help(UIContext *ctx, int key);
 static void state_cleanup_help(UIContext *ctx);
 
+/* Client States */
+static void state_draw_client_dashboard(UIContext *ctx);
+static NavDirection state_handle_client_dashboard(UIContext *ctx, int key);
+static void state_cleanup_client_dashboard(UIContext *ctx);
+
+static void state_draw_client_reservations(UIContext *ctx);
+static NavDirection state_handle_client_reservations(UIContext *ctx, int key);
+static void state_cleanup_client_reservations(UIContext *ctx);
+
 /* Tableau dyal state handlers */
 static const StateHandler state_handlers[] = {
     [UI_STATE_DASHBOARD] = {
@@ -122,7 +132,9 @@ static const StateHandler state_handlers[] = {
     [UI_STATE_RESERVATIONS_ADD] = {.draw = state_draw_reservations_add, .handle_input = state_handle_reservations_add, .cleanup = state_cleanup_reservations_add, .name = "ReservationsAdd"},
     [UI_STATE_BILLING] = {.draw = state_draw_billing, .handle_input = state_handle_billing, .cleanup = state_cleanup_billing, .name = "Billing"},
     [UI_STATE_BILLING_CREATE] = {.draw = state_draw_billing_create, .handle_input = state_handle_billing_create, .cleanup = state_cleanup_billing_create, .name = "BillingCreate"},
-    [UI_STATE_HELP] = {.draw = state_draw_help, .handle_input = state_handle_help, .cleanup = state_cleanup_help, .name = "Help"}};
+    [UI_STATE_HELP] = {.draw = state_draw_help, .handle_input = state_handle_help, .cleanup = state_cleanup_help, .name = "Help"},
+    [UI_STATE_CLIENT_DASHBOARD] = {.draw = state_draw_client_dashboard, .handle_input = state_handle_client_dashboard, .cleanup = state_cleanup_client_dashboard, .name = "ClientDash"},
+    [UI_STATE_CLIENT_MY_RESERVATIONS] = {.draw = state_draw_client_reservations, .handle_input = state_handle_client_reservations, .cleanup = state_cleanup_client_reservations, .name = "ClientRes"}};
 
 /* Implementation dyal UIContext */
 UIContext *ui_context_create(void)
@@ -268,22 +280,42 @@ static NavDirection handle_app_state_input(UIContext *ctx, int key)
             switch (ctx->selected_menu_item)
             {
             case 0:
-                ctx->current_state = UI_STATE_DASHBOARD;
+                if(strcmp(ctx->current_role,"client")==0) ctx->current_state = UI_STATE_CLIENT_DASHBOARD;
+                else ctx->current_state = UI_STATE_DASHBOARD;
                 break;
-            case 1:
-                ctx->current_state = UI_STATE_CLIENTS;
+            case 1: // Client: Book(TODO) / Admin: Clients
+                if(strcmp(ctx->current_role,"client")==0) { 
+                    // Book Room Logic (Reuse Inquiry Modal)
+                     ctx->current_state = UI_STATE_RESERVATIONS_ADD; // Simplified: Reuse existing
+                } else {
+                    ctx->current_state = UI_STATE_CLIENTS;
+                }
                 break;
-            case 2:
-                ctx->current_state = UI_STATE_ROOMS;
+            case 2: // Client: My Res / Admin: Rooms
+                if(strcmp(ctx->current_role,"client")==0) {
+                    ctx->current_state = UI_STATE_CLIENT_MY_RESERVATIONS;
+                } else {
+                    ctx->current_state = UI_STATE_ROOMS;
+                }
                 break;
-            case 3:
-                ctx->current_state = UI_STATE_RESERVATIONS;
+            case 3: // Client: Logout / Admin: Reservations
+                if(strcmp(ctx->current_role,"client")==0) {
+                     ctx->current_state = UI_STATE_EXIT;
+                } else {
+                    ctx->current_state = UI_STATE_RESERVATIONS;
+                }
                 break;
-            case 4:
+            case 4: // Billing
                 ctx->current_state = UI_STATE_BILLING;
                 break;
-            case 5:
-                ctx->current_state = UI_STATE_HELP;
+            case 5: // Help or Users
+                if(strcmp(ctx->current_role,"admin")==0) {
+                    // Users handled via F2 usually, but here menu item 5 is "Users [F2]"
+                     // Just show Help for now or ignore
+                     ctx->current_state = UI_STATE_HELP; 
+                } else {
+                     ctx->current_state = UI_STATE_HELP;
+                }
                 break;
             case 6:
                 ctx->current_state = UI_STATE_EXIT;
@@ -946,6 +978,7 @@ static void state_draw_reservations_add(UIContext *ctx)
 
 static NavDirection state_handle_reservations_add(UIContext *ctx, int key)
 {
+    (void)ctx; /* Unused */
     (void)key; /* Unused parameter */
     // Modal is handled in draw function
     return NAV_NONE;
@@ -1285,3 +1318,64 @@ void ui_redraw(UIContext *ctx)
         ctx->needs_redraw = true;
     }
 }
+/* Client State Implementations */
+
+static void state_draw_client_dashboard(UIContext *ctx)
+{
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_client_dashboard(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+}
+
+static NavDirection state_handle_client_dashboard(UIContext *ctx, int key)
+{
+    // Re-use standard sidebar handling logic wrapper?
+    // Actually, sidebar handling logic is in `handle_app_state_input` CASE STATE_SIDEBAR.
+    // This function is for when focus is in Content?
+    // Dashboard usually doesn't have focus content.
+    // So usually we just return NAV_NONE or handle specific keys.
+    return ui_input_process_key(ctx, key);
+}
+
+static void state_cleanup_client_dashboard(UIContext *ctx) { (void)ctx; }
+
+static void state_draw_client_reservations(UIContext *ctx)
+{
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_client_my_reservations(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+}
+
+static NavDirection state_handle_client_reservations(UIContext *ctx, int key)
+{
+     if(key == 27) { // ESC
+         ctx->app_state = STATE_SIDEBAR;
+         ctx->needs_redraw = true;
+         return NAV_BACK;
+     }
+     
+     // Scroll
+     if (key == KEY_UP && ctx->selected_list_item > 0) {
+        ctx->selected_list_item--;
+        if (ctx->selected_list_item < ctx->scroll_offset) 
+            ctx->scroll_offset = ctx->selected_list_item;
+        ctx->needs_redraw = true;
+    } else if (key == KEY_DOWN) {
+        // We need count of MY reservations
+         // For simplicity, we just increment and let draw clamp it?
+         // Better to implement logic here or access filtered count.
+         // Let's just allow scrolling unlimited and let draw clamp.
+         ctx->selected_list_item++;
+         ctx->needs_redraw = true;
+    }
+    
+    return NAV_NONE;
+}
+
+static void state_cleanup_client_reservations(UIContext *ctx) { (void)ctx; }

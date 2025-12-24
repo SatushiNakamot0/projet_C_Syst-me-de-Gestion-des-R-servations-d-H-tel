@@ -1,15 +1,35 @@
-# Build outputs
-/build/
-/obj/
-
-# Editor settings
-.vscode/
-
-# OS junk
-.DS_Store
-
-# Windows binaries
+# Build artifacts
+obj/
+build/
+*.o
 *.exe
+*.dll
+*.so
+*.a
 
+# Data files (keep structure but ignore data)
+data/*.dat
 
-/vcpkg/
+# Generated invoices
+facture_*.txt
+
+# Editor/IDE configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Build logs
+build_log.txt
+
+# Backup files
+*.bak
+*.backup
+
+# vcpkg (if used)
+vcpkg/

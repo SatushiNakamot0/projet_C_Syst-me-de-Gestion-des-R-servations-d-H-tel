@@ -33,6 +33,10 @@ typedef enum
     UI_STATE_BILLING,
     UI_STATE_BILLING_LIST,
     UI_STATE_BILLING_CREATE,
+
+    UI_STATE_CLIENT_DASHBOARD,
+    UI_STATE_CLIENT_MY_RESERVATIONS,
+    UI_STATE_CLIENT_BOOK,
     UI_STATE_HELP,
     UI_STATE_EXIT,
     UI_STATE_COUNT /* Sentinel value for array sizing */
@@ -65,6 +69,10 @@ typedef struct
     UIState current_state;
     UIState previous_state;
     AppState app_state; /* Current focus state */
+    
+    /* Auth State */
+    char current_username[50];
+    char current_role[20];
 
     /* Application data */
     Client *clients;
