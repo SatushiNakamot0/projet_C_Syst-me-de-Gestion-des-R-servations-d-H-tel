@@ -90,9 +90,6 @@ int valider_chambre(const Chambre *chambre, const Chambre chambres[], int count,
     return 1; // Chambre mezyana
 }
 
-/* ============================================================================
- * OPÉRATIONS CRUD (LOGIC PURE)
- * ============================================================================ */
 
 int chambre_ajouter(Chambre *chambres, int *count, const Chambre *nouvelle_chambre) {
     if (*count >= MAX_CHAMBRES) {

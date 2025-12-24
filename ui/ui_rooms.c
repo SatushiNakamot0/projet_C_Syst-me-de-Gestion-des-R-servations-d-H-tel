@@ -267,7 +267,6 @@ int show_add_room_form(Chambre chambres[], int *count, int capacity)
 
     // Cleanup
     delwin(form_win);
-    echo();
     curs_set(0);
     clear(); // Clear screen for proper return
 

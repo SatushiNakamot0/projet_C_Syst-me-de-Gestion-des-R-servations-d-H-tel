@@ -59,7 +59,7 @@ int show_client_search_modal(Client clients[], int clients_count)
         mvwprintw(win, height - 2, 2, "Enter: Search | ESC: Cancel");
         wrefresh(win);
 
-        int ch = w getch(win);
+        int ch = wgetch(win);
         if (ch == 27)
         { // ESC
             delwin(win);
