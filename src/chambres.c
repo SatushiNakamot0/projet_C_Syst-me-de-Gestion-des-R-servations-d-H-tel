@@ -5,7 +5,7 @@
 #include "chambres.h"
 #include "structures.h"
 #include "fichiers.h"
-#include "../include/safe_input.h"
+
 #include "../include/debug.h"
 
 /* Constants dyal validation */
@@ -13,6 +13,7 @@
 #define MAX_ROOM_NUMBER 9999
 #define MIN_PRICE 0.0f
 #define MAX_PRICE 10000.0f
+#define MAX_TYPE_LENGTH 50  // Max length for room type string
 
 /* ============================================================================
  * IMPLEMENTATION DYAL GESTION DES CHAMBRES

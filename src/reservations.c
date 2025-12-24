@@ -7,7 +7,7 @@
 #include "fichiers.h"
 #include "clients.h"
 #include "chambres.h"
-#include "../include/safe_input.h"
+
 #include "../include/debug.h"
 
 /* Constants for validation */

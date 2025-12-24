@@ -4,7 +4,7 @@
 #include "../include/clients.h"
 #include "../include/structures.h"
 #include "../include/fichiers.h" // For sauvegarder_clients
-#include "../include/safe_input.h"
+
 #include "../include/debug.h"
 
 /* ============================================================================

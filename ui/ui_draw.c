@@ -4,7 +4,6 @@
 #include "../include/clients.h"
 #include "../include/chambres.h"
 #include "../include/reservations.h"
-#include "../include/facturation.h"
 #include <string.h>
 #include <stdio.h>
 #include <ncurses.h>

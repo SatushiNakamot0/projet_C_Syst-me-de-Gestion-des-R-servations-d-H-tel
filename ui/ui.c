@@ -20,7 +20,7 @@
 #include "../include/fichiers.h"
 #include "../include/clients.h"
 #include "../include/chambres.h"
-#include "../include/facturation.h"
+
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
