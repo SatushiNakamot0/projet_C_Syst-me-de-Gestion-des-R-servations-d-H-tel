@@ -23,6 +23,25 @@ typedef struct
     int current_step; // 1=input, 2=selection, 3=client, 4=commit
 } ReservationContext;
 
+// Helper from Task
+double calculate_nights_diff(const char *start_str, const char *end_str) {
+    int d1, m1, y1;
+    int d2, m2, y2;
+    sscanf(start_str, "%d/%d/%d", &d1, &m1, &y1);
+    sscanf(end_str, "%d/%d/%d", &d2, &m2, &y2);
+
+    struct tm tm1 = {0}; tm1.tm_mday = d1; tm1.tm_mon = m1 - 1; tm1.tm_year = y1 - 1900;
+    struct tm tm2 = {0}; tm2.tm_mday = d2; tm2.tm_mon = m2 - 1; tm2.tm_year = y2 - 1900;
+
+    time_t t1 = mktime(&tm1);
+    time_t t2 = mktime(&tm2);
+    
+    double seconds = difftime(t2, t1);
+    double days = seconds / (60 * 60 * 24);
+    if (days < 1) days = 1; // Minimum charge
+    return days;
+}
+
 // Backend function implementations (simplified for this refactoring)
 // Helper to find next available reservation ID
 // Backend function logic moved to src/reservations.c
@@ -536,26 +555,8 @@ void show_billing_modal(Reservation *reservation, Client *client, Chambre *room)
     cbreak();
     curs_set(0);
 
-    // Calculate billing info using mktime
-    struct tm tm_start = {0};
-    struct tm tm_end = {0};
-
-    // Parse DD/MM/YYYY
-    sscanf(reservation->date_debut, "%d/%d/%d", &tm_start.tm_mday, &tm_start.tm_mon, &tm_start.tm_year);
-    sscanf(reservation->date_fin, "%d/%d/%d", &tm_end.tm_mday, &tm_end.tm_mon, &tm_end.tm_year);
-
-    // Adjust for struct tm (Month 0-11, Year since 1900)
-    tm_start.tm_mon -= 1; tm_start.tm_year -= 1900;
-    tm_end.tm_mon -= 1;   tm_end.tm_year -= 1900;
-
-    // Normalization (handles leap years etc)
-    time_t t_start = mktime(&tm_start);
-    time_t t_end = mktime(&tm_end);
-
-    double seconds = difftime(t_end, t_start);
-    int days = (int)(seconds / (24 * 3600));
-    if (days < 1) days = 1;
-
+    // Calculate nights using helper
+    int days = (int)calculate_nights_diff(reservation->date_debut, reservation->date_fin);
     float total = days * room->prix;
 
     // Dim background
