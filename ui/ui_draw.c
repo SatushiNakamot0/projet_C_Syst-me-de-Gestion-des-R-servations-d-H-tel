@@ -270,12 +270,38 @@ void ui_draw_clients_add(UIContext *ctx, Layout *layout) {
     ui_theme_draw_title("ADD NEW CLIENT", y, x, w);
     
     int form_y = y + 3;
-    mvprintw(form_y, x + 2, "Nom:     [                    ]");
-    mvprintw(form_y + 2, x + 2, "Prenom:  [                    ]");
-    mvprintw(form_y + 4, x + 2, "Email:   [                    ]");
-    mvprintw(form_y + 6, x + 2, "Telephone: [                  ]");
     
-    mvprintw(form_y + 8, x + 2, "[Save]  [Cancel]");
+    // Draw fields
+    const char* labels[] = {"Nom:", "Prenom:", "Email:", "Telephone:"};
+    const int field_x = x + 4;
+    const int field_width = 30;
+    
+    for (int i = 0; i < 4; i++) {
+        // Highlight current field
+        if (i == ctx->current_field) {
+            attron(A_REVERSE);
+            mvprintw(form_y + (i * 2), x + 2, ">");
+            attroff(A_REVERSE);
+        }
+        
+        // Draw label
+        mvprintw(form_y + (i * 2), field_x, "%-10s", labels[i]);
+        
+        // Draw field
+        const char* value = (i == ctx->current_field && ctx->in_input_mode) ? 
+                           ctx->input_buffer : 
+                           (ctx->field_values && ctx->field_values[i] ? ctx->field_values[i] : "");
+        
+        mvprintw(form_y + (i * 2), field_x + 10, "[%-*s]", field_width - 2, value);
+        
+        // Show cursor in input mode
+        if (i == ctx->current_field && ctx->in_input_mode) {
+            move(form_y + (i * 2), field_x + 11 + ctx->input_cursor_pos);
+        }
+    }
+    
+    // Instructions
+    mvprintw(form_y + 9, x + 2, "Press ENTER to save, ESC to cancel");
 }
 
 void ui_draw_clients_edit(UIContext *ctx, Layout *layout) {

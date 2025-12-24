@@ -7,6 +7,13 @@
 #include "fichiers.h"
 #include "clients.h"
 #include "chambres.h"
+#include "../include/safe_input.h"
+#include "../include/debug.h"
+
+/* Constants for validation */
+#define MIN_YEAR 2020
+#define MAX_YEAR 2100
+#define DATE_LENGTH 11
 
 /* ============================================================================
  * RESERVATION MANAGEMENT IMPLEMENTATION
@@ -34,19 +41,30 @@ static void parser_date(const char *date, int *jour, int *mois, int *annee) {
 
 int valider_date(const char *date) {
     if (!date || strlen(date) != 10) {
+        LOG_ERROR("Format de date invalide: '%s'", date ? date : "NULL");
         return 0;
     }
     
     if (date[2] != '/' || date[5] != '/') {
+        LOG_ERROR("Séparateurs de date invalides dans: '%s'", date);
         return 0;
     }
     
     int jour, mois, annee;
     parser_date(date, &jour, &mois, &annee);
     
-    if (jour < 1 || jour > 31) return 0;
-    if (mois < 1 || mois > 12) return 0;
-    if (annee < 2020 || annee > 2100) return 0;
+    if (jour < 1 || jour > 31) {
+        LOG_ERROR("Jour invalide: %d dans la date '%s'", jour, date);
+        return 0;
+    }
+    if (mois < 1 || mois > 12) {
+        LOG_ERROR("Mois invalide: %d dans la date '%s'", mois, date);
+        return 0;
+    }
+    if (annee < MIN_YEAR || annee > MAX_YEAR) {
+        LOG_ERROR("Année invalide: %d dans la date '%s' (doit être %d-%d)", annee, date, MIN_YEAR, MAX_YEAR);
+        return 0;
+    }
     
     /* Basic month day validation */
     int jours_par_mois[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -165,19 +183,24 @@ void ajouter_reservation(Reservation reservations[], int *count,
     int client_id, chambre_numero;
     int client_trouve = 0, chambre_trouve = 0;
     int max_id = 0;
-    char date_debut[11], date_fin[11];
+    char date_debut[DATE_LENGTH], date_fin[DATE_LENGTH];
+    
+    LOG_INFO("Début de la création d'une réservation");
     
     if (*count >= MAX_RESERVATIONS) {
+        LOG_ERROR("Limite de réservations atteinte (%d)", MAX_RESERVATIONS);
         printf("\nErreur: Limite de reservations atteinte (%d). Ajout impossible.\n", MAX_RESERVATIONS);
         return;
     }
     
     if (clients_count == 0) {
+        LOG_ERROR("Aucun client enregistré pour la réservation");
         printf("\nErreur: Aucun client enregistre. Veuillez d'abord ajouter un client.\n");
         return;
     }
     
     if (chambres_count == 0) {
+        LOG_ERROR("Aucune chambre enregistrée pour la réservation");
         printf("\nErreur: Aucune chambre enregistree. Veuillez d'abord ajouter des chambres.\n");
         return;
     }
@@ -185,11 +208,8 @@ void ajouter_reservation(Reservation reservations[], int *count,
     printf("\n--- CREATION D'UNE RESERVATION ---\n");
     
     /* Get and validate client ID */
-    printf("Entrez l'ID du client: ");
-    if (scanf("%d", &client_id) != 1) {
-        printf("Erreur: ID client invalide.\n");
-        return;
-    }
+    client_id = safe_input_int("Entrez l'ID du client: ");
+    LOG_DEBUG("ID client pour réservation: %d", client_id);
     
     for (int i = 0; i < clients_count; i++) {
         if (clients[i].id == client_id) {
@@ -200,16 +220,14 @@ void ajouter_reservation(Reservation reservations[], int *count,
     }
     
     if (!client_trouve) {
+        LOG_ERROR("Client non trouvé pour réservation: ID %d", client_id);
         printf("Erreur: Client avec ID %d non trouve.\n", client_id);
         return;
     }
     
     /* Get and validate room number */
-    printf("Entrez le numero de chambre: ");
-    if (scanf("%d", &chambre_numero) != 1) {
-        printf("Erreur: Numero de chambre invalide.\n");
-        return;
-    }
+    chambre_numero = safe_input_int("Entrez le numero de chambre: ");
+    LOG_DEBUG("Numéro de chambre pour réservation: %d", chambre_numero);
     
     int index_chambre = trouver_chambre_par_numero(chambres, chambres_count, chambre_numero);
     if (index_chambre == -1) {
@@ -226,22 +244,16 @@ void ajouter_reservation(Reservation reservations[], int *count,
            chambres[index_chambre].type, chambres[index_chambre].prix);
     
     /* Get and validate dates */
-    printf("Entrez la date de debut (DD/MM/YYYY): ");
-    if (scanf("%10s", date_debut) != 1) {
-        printf("Erreur: Date invalide.\n");
-        return;
-    }
+    safe_input_string("Entrez la date de debut (DD/MM/YYYY): ", date_debut, DATE_LENGTH);
+    LOG_DEBUG("Date de début saisie: %s", date_debut);
     
     if (!valider_date(date_debut)) {
         printf("Erreur: Format de date invalide. Utilisez DD/MM/YYYY.\n");
         return;
     }
     
-    printf("Entrez la date de fin (DD/MM/YYYY): ");
-    if (scanf("%10s", date_fin) != 1) {
-        printf("Erreur: Date invalide.\n");
-        return;
-    }
+    safe_input_string("Entrez la date de fin (DD/MM/YYYY): ", date_fin, DATE_LENGTH);
+    LOG_DEBUG("Date de fin saisie: %s", date_fin);
     
     if (!valider_date(date_fin)) {
         printf("Erreur: Format de date invalide. Utilisez DD/MM/YYYY.\n");
@@ -277,10 +289,10 @@ void ajouter_reservation(Reservation reservations[], int *count,
     printf("  Montant total: %.2f EUR\n", montant);
     
     printf("\nConfirmez-vous cette reservation ? (o/n): ");
-    char confirmation;
-    scanf(" %c", &confirmation);
+    int confirmation = safe_input_yes_no("");
     
-    if (confirmation != 'o' && confirmation != 'O') {
+    if (!confirmation) {
+        LOG_INFO("Réservation annulée par l'utilisateur");
         printf("Reservation annulee.\n");
         return;
     }
@@ -305,6 +317,9 @@ void ajouter_reservation(Reservation reservations[], int *count,
     /* Add to array */
     reservations[*count] = nouvelle_reservation;
     (*count)++;
+    
+    LOG_INFO("Réservation créée avec succès: ID %d, Client %d, Chambre %d, %.2f EUR", 
+             nouvelle_reservation.id, client_id, chambre_numero, montant);
     
     /* Persist immediately */
     sauvegarder_reservations(reservations, *count);
@@ -367,11 +382,7 @@ void modifier_reservation(Reservation reservations[], int *count,
     int index_reservation = -1;
     
     printf("\n--- MODIFICATION D'UNE RESERVATION ---\n");
-    printf("Entrez l'ID de la reservation a modifier: ");
-    if (scanf("%d", &id_a_modifier) != 1) {
-        printf("Erreur: ID invalide.\n");
-        return;
-    }
+    id_a_modifier = safe_input_int("Entrez l'ID de la reservation a modifier: ");
     
     index_reservation = trouver_reservation_par_id(reservations, *count, id_a_modifier);
     
@@ -389,23 +400,26 @@ void modifier_reservation(Reservation reservations[], int *count,
     printf("  Montant: %.2f EUR\n", reservations[index_reservation].montant);
     
     int choix;
-    printf("\nQue voulez-vous modifier ? (1: Dates, 2: Chambre): ");
-    if (scanf("%d", &choix) != 1) {
-        printf("Erreur: Choix invalide.\n");
-        return;
-    }
+    choix = safe_input_int("\nQue voulez-vous modifier ? (1: Dates, 2: Chambre): ");
     
     switch (choix) {
         case 1: {
-            char nouvelle_date_debut[11], nouvelle_date_fin[11];
-            printf("Nouvelle date de debut (actuelle: %s): ", reservations[index_reservation].date_debut);
-            if (scanf("%10s", nouvelle_date_debut) != 1 || !valider_date(nouvelle_date_debut)) {
+            char nouvelle_date_debut[DATE_LENGTH], nouvelle_date_fin[DATE_LENGTH];
+            char prompt_debut[100];
+            char prompt_fin[100];
+
+            sprintf(prompt_debut, "Nouvelle date de debut (actuelle: %s): ", reservations[index_reservation].date_debut);
+            safe_input_string(prompt_debut, nouvelle_date_debut, DATE_LENGTH);
+
+            if (!valider_date(nouvelle_date_debut)) {
                 printf("Erreur: Date invalide.\n");
                 return;
             }
             
-            printf("Nouvelle date de fin (actuelle: %s): ", reservations[index_reservation].date_fin);
-            if (scanf("%10s", nouvelle_date_fin) != 1 || !valider_date(nouvelle_date_fin)) {
+            sprintf(prompt_fin, "Nouvelle date de fin (actuelle: %s): ", reservations[index_reservation].date_fin);
+            safe_input_string(prompt_fin, nouvelle_date_fin, DATE_LENGTH);
+
+            if (!valider_date(nouvelle_date_fin)) {
                 printf("Erreur: Date invalide.\n");
                 return;
             }
@@ -445,12 +459,10 @@ void modifier_reservation(Reservation reservations[], int *count,
         
         case 2: {
             int nouvelle_chambre;
-            printf("Nouveau numero de chambre (actuel: %d): ",
-                   reservations[index_reservation].chambre_numero);
-            if (scanf("%d", &nouvelle_chambre) != 1) {
-                printf("Erreur: Numero invalide.\n");
-                return;
-            }
+            char prompt_chambre[100];
+
+            sprintf(prompt_chambre, "Nouveau numero de chambre (actuel: %d): ", reservations[index_reservation].chambre_numero);
+            nouvelle_chambre = safe_input_int(prompt_chambre);
             
             int index_chambre = trouver_chambre_par_numero(chambres, chambres_count, nouvelle_chambre);
             if (index_chambre == -1) {
@@ -491,11 +503,7 @@ void annuler_reservation(Reservation reservations[], int *count) {
     int index_reservation = -1;
     
     printf("\n--- ANNULATION D'UNE RESERVATION ---\n");
-    printf("Entrez l'ID de la reservation a annuler: ");
-    if (scanf("%d", &id_a_annuler) != 1) {
-        printf("Erreur: ID invalide.\n");
-        return;
-    }
+    id_a_annuler = safe_input_int("Entrez l'ID de la reservation a annuler: ");
     
     index_reservation = trouver_reservation_par_id(reservations, *count, id_a_annuler);
     
@@ -512,11 +520,9 @@ void annuler_reservation(Reservation reservations[], int *count) {
            reservations[index_reservation].date_fin);
     printf("  Montant: %.2f EUR\n", reservations[index_reservation].montant);
     
-    printf("\nConfirmez-vous l'annulation ? (o/n): ");
-    char confirmation;
-    scanf(" %c", &confirmation);
+    int confirmation = safe_input_yes_no("\nConfirmez-vous l'annulation ? (o/n): ");
     
-    if (confirmation != 'o' && confirmation != 'O') {
+    if (!confirmation) {
         printf("Annulation annulee.\n");
         return;
     }

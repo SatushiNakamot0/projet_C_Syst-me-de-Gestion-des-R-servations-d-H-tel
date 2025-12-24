@@ -4,6 +4,8 @@
 #include "../include/structures.h"
 #include "../include/facturation.h"
 #include "../include/fichiers.h"
+#include "../include/safe_input.h"
+#include "../include/debug.h"
 
 /* Déclaration des fonctions */
 void creer_facture(Facture factures[], int *count, const Client clients[], int nbClients);
@@ -40,15 +42,22 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
     int client_trouve = 0;
     int max_id = 0;
 
+    LOG_INFO("Début de la création d'une facture");
+
     if (*count >= MAX_FACTURES)
     {
+<<<<<<< HEAD
 >>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
+=======
+        LOG_ERROR("Limite de factures atteinte (%d)", MAX_FACTURES);
+>>>>>>> c9edf7fd89baac70edcece9ba3b4cfbcc9b40868
         printf("\nErreur : Limite de factures atteinte.\n");
         return;
     }
 
     if (nbClients == 0)
     {
+        LOG_ERROR("Aucun client enregistré pour la facturation");
         printf("\nErreur : Aucun client enregistre.\n");
         return;
     }
@@ -59,6 +68,7 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
     int max_id = 0;
 
     printf("\n--- CREATION D'UNE FACTURE ---\n");
+<<<<<<< HEAD
 
     // Saisie ID client
     printf("Entrez l'ID du client : ");
@@ -72,6 +82,10 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
     if (scanf("%d", &id_client) != 1)
         return;
 >>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
+=======
+    id_client = safe_input_int("Entrez l'ID du client : ");
+    LOG_DEBUG("ID client pour facture: %d", id_client);
+>>>>>>> c9edf7fd89baac70edcece9ba3b4cfbcc9b40868
 
     for (int i = 0; i < nbClients; i++)
     {
@@ -84,10 +98,12 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
 
     if (!client_trouve)
     {
+        LOG_ERROR("Client introuvable pour facturation: ID %d", id_client);
         printf("Erreur : Client introuvable.\n");
         return;
     }
 
+<<<<<<< HEAD
     // Saisie nombre de nuits
     printf("Nombre de nuits : ");
     if (scanf("%d", &nouvelle_facture.nbNuits) != 1 || nouvelle_facture.nbNuits <= 0) {
@@ -103,6 +119,13 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
         while(getchar() != '\n');
         return;
     }
+=======
+    nouvelle_facture.nbNuits = safe_input_int("Nombre de nuits : ");
+    LOG_DEBUG("Nombre de nuits: %d", nouvelle_facture.nbNuits);
+
+    nouvelle_facture.prixNuit = safe_input_float("Prix par nuit : ");
+    LOG_DEBUG("Prix par nuit: %.2f", nouvelle_facture.prixNuit);
+>>>>>>> c9edf7fd89baac70edcece9ba3b4cfbcc9b40868
 
 <<<<<<< HEAD
     // Calcul du total
@@ -114,7 +137,10 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
     nouvelle_facture.total = calculer_total(
         nouvelle_facture.nbNuits,
         nouvelle_facture.prixNuit);
+    
+    LOG_DEBUG("Total calculé: %.2f", nouvelle_facture.total);
 
+    /* Trouver le prochain ID de facture */
     for (int i = 0; i < *count; i++)
     {
 >>>>>>> 0323135ec3abbb04083ebca1aa1ee2302aa49ca5
@@ -128,7 +154,12 @@ void creer_facture(Facture factures[], int *count, const Client clients[], int n
     factures[*count] = nouvelle_facture;
     (*count)++;
 
+<<<<<<< HEAD
     // Sauvegarde dans le fichier
+=======
+    LOG_INFO("Facture créée avec succès: ID %d, Client %d, Total %.2f", 
+             nouvelle_facture.idFacture, id_client, nouvelle_facture.total);
+>>>>>>> c9edf7fd89baac70edcece9ba3b4cfbcc9b40868
     sauvegarder_factures(factures, *count);
 
     printf("\nFacture creee avec succes (ID Facture: %d)\n", nouvelle_facture.idFacture);

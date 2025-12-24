@@ -3,6 +3,7 @@
 #include "ui_theme.h"
 #include "ui_layout.h"
 #include "ui_draw.h"
+#include "ui_form.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -29,6 +30,7 @@
 
 static UIContext *g_ctx = NULL;
 static bool g_running = false;
+static UIState g_help_return_state = UI_STATE_DASHBOARD;
 
 /* Handler dyal signal باش ila تبدلات taille dyal l-window */
 static void handle_resize(int sig) {
@@ -50,17 +52,41 @@ static void state_draw_clients(UIContext *ctx);
 static NavDirection state_handle_clients(UIContext *ctx, int key);
 static void state_cleanup_clients(UIContext *ctx);
 
+static void state_draw_clients_add(UIContext *ctx);
+static NavDirection state_handle_clients_add(UIContext *ctx, int key);
+static void state_cleanup_clients_add(UIContext *ctx);
+
+static void state_draw_clients_edit(UIContext *ctx);
+static NavDirection state_handle_clients_edit(UIContext *ctx, int key);
+static void state_cleanup_clients_edit(UIContext *ctx);
+
+static void state_draw_clients_search(UIContext *ctx);
+static NavDirection state_handle_clients_search(UIContext *ctx, int key);
+static void state_cleanup_clients_search(UIContext *ctx);
+
 static void state_draw_rooms(UIContext *ctx);
 static NavDirection state_handle_rooms(UIContext *ctx, int key);
 static void state_cleanup_rooms(UIContext *ctx);
+
+static void state_draw_rooms_add(UIContext *ctx);
+static NavDirection state_handle_rooms_add(UIContext *ctx, int key);
+static void state_cleanup_rooms_add(UIContext *ctx);
 
 static void state_draw_reservations(UIContext *ctx);
 static NavDirection state_handle_reservations(UIContext *ctx, int key);
 static void state_cleanup_reservations(UIContext *ctx);
 
+static void state_draw_reservations_add(UIContext *ctx);
+static NavDirection state_handle_reservations_add(UIContext *ctx, int key);
+static void state_cleanup_reservations_add(UIContext *ctx);
+
 static void state_draw_billing(UIContext *ctx);
 static NavDirection state_handle_billing(UIContext *ctx, int key);
 static void state_cleanup_billing(UIContext *ctx);
+
+static void state_draw_billing_create(UIContext *ctx);
+static NavDirection state_handle_billing_create(UIContext *ctx, int key);
+static void state_cleanup_billing_create(UIContext *ctx);
 
 static void state_draw_help(UIContext *ctx);
 static NavDirection state_handle_help(UIContext *ctx, int key);
@@ -80,11 +106,35 @@ static const StateHandler state_handlers[] = {
         .cleanup = state_cleanup_clients,
         .name = "Clients"
     },
+    [UI_STATE_CLIENTS_ADD] = {
+        .draw = state_draw_clients_add,
+        .handle_input = state_handle_clients_add,
+        .cleanup = state_cleanup_clients_add,
+        .name = "ClientsAdd"
+    },
+    [UI_STATE_CLIENTS_EDIT] = {
+        .draw = state_draw_clients_edit,
+        .handle_input = state_handle_clients_edit,
+        .cleanup = state_cleanup_clients_edit,
+        .name = "ClientsEdit"
+    },
+    [UI_STATE_CLIENTS_SEARCH] = {
+        .draw = state_draw_clients_search,
+        .handle_input = state_handle_clients_search,
+        .cleanup = state_cleanup_clients_search,
+        .name = "ClientsSearch"
+    },
     [UI_STATE_ROOMS] = {
         .draw = state_draw_rooms,
         .handle_input = state_handle_rooms,
         .cleanup = state_cleanup_rooms,
         .name = "Rooms"
+    },
+    [UI_STATE_ROOMS_ADD] = {
+        .draw = state_draw_rooms_add,
+        .handle_input = state_handle_rooms_add,
+        .cleanup = state_cleanup_rooms_add,
+        .name = "RoomsAdd"
     },
     [UI_STATE_RESERVATIONS] = {
         .draw = state_draw_reservations,
@@ -92,11 +142,23 @@ static const StateHandler state_handlers[] = {
         .cleanup = state_cleanup_reservations,
         .name = "Reservations"
     },
+    [UI_STATE_RESERVATIONS_ADD] = {
+        .draw = state_draw_reservations_add,
+        .handle_input = state_handle_reservations_add,
+        .cleanup = state_cleanup_reservations_add,
+        .name = "ReservationsAdd"
+    },
     [UI_STATE_BILLING] = {
         .draw = state_draw_billing,
         .handle_input = state_handle_billing,
         .cleanup = state_cleanup_billing,
         .name = "Billing"
+    },
+    [UI_STATE_BILLING_CREATE] = {
+        .draw = state_draw_billing_create,
+        .handle_input = state_handle_billing_create,
+        .cleanup = state_cleanup_billing_create,
+        .name = "BillingCreate"
     },
     [UI_STATE_HELP] = {
         .draw = state_draw_help,
@@ -163,6 +225,9 @@ UIContext* ui_context_create(void) {
 
 void ui_context_destroy(UIContext *ctx) {
     if (!ctx) return;
+    
+    // Clean up form resources
+    ui_form_cleanup(ctx);
     
     free(ctx->clients);
     free(ctx->chambres);
@@ -311,6 +376,140 @@ static void state_cleanup_clients(UIContext *ctx) {
     (void)ctx;
 }
 
+static void state_draw_clients_add(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_clients_add(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_clients_add(UIContext *ctx, int key) {
+    if (!ctx->in_input_mode) {
+        // Initialize form if first time
+        ctx->num_fields = 4;
+        ctx->current_field = 0;
+        ui_form_start_input(ctx, 1); // Start in text input mode
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+    }
+    
+    // Handle form input
+    int form_result = ui_form_handle_input(ctx, key);
+    
+    if (form_result == FORM_CANCEL) {
+        ui_form_cleanup(ctx);
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->needs_redraw = true;
+        return NAV_BACK;
+    }
+    else if (form_result == FORM_SUBMIT) {
+        // Submit form
+        if (ctx->field_values[0] && ctx->field_values[1] && 
+            ctx->field_values[2] && ctx->field_values[3]) {
+
+            // Add new client to the array
+            if (ctx->clients_count < ctx->clients_capacity) {
+                LOG_INFO("User submitted client form");
+                LOG_DEBUG("Attempting to save client: %s %s, Email: %s, Tel: %s", 
+                         ctx->field_values[0], ctx->field_values[1], 
+                         ctx->field_values[2], ctx->field_values[3]);
+
+                Client *new_client = &ctx->clients[ctx->clients_count];
+                strncpy(new_client->nom, ctx->field_values[0], sizeof(new_client->nom)-1);
+                strncpy(new_client->prenom, ctx->field_values[1], sizeof(new_client->prenom)-1);
+                strncpy(new_client->email, ctx->field_values[2], sizeof(new_client->email)-1);
+                strncpy(new_client->telephone, ctx->field_values[3], sizeof(new_client->telephone)-1);
+                new_client->id = ctx->clients_count + 1; // Simple ID assignment
+
+                // Directly add to array and save (bypass console-based ajouter_client)
+                ctx->clients_count++;
+                sauvegarder_clients(ctx->clients, ctx->clients_count);
+                LOG_INFO("Client saved successfully to file");
+                
+                // Success
+                strcpy(ctx->status_message, "Client added successfully");
+                ctx->status_type = 1; // Success
+                ctx->status_timeout = 60;
+                ui_form_cleanup(ctx);
+                ctx->current_state = UI_STATE_CLIENTS;
+                ctx->needs_redraw = true;
+                return NAV_BACK;
+            } else {
+                // Error - array is full
+                LOG_ERROR("Cannot add client: database is full");
+                strcpy(ctx->status_message, "Cannot add client: database is full");
+                ctx->status_type = 3; // Error
+                ctx->status_timeout = 60;
+            }
+        } else {
+            // Error - missing required fields
+            LOG_ERROR("Cannot add client: missing required fields");
+            strcpy(ctx->status_message, "All fields are required");
+            ctx->status_type = 3; // Error
+            ctx->status_timeout = 60;
+        }
+    }
+    
+    ctx->needs_redraw = true;
+    return NAV_NONE;
+}
+
+static void state_cleanup_clients_add(UIContext *ctx) {
+    (void)ctx;
+}
+
+static void state_draw_clients_edit(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_clients_edit(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_clients_edit(UIContext *ctx, int key) {
+    NavDirection dir = ui_input_process_key(ctx, key);
+    if (dir == NAV_BACK || key == 27) {
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->needs_redraw = true;
+    }
+    return dir;
+}
+
+static void state_cleanup_clients_edit(UIContext *ctx) {
+    (void)ctx;
+}
+
+static void state_draw_clients_search(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_clients_search(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_clients_search(UIContext *ctx, int key) {
+    NavDirection dir = ui_input_process_key(ctx, key);
+    if (dir == NAV_BACK || key == 27) {
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->needs_redraw = true;
+    }
+    return dir;
+}
+
+static void state_cleanup_clients_search(UIContext *ctx) {
+    (void)ctx;
+}
+
 static void state_draw_rooms(UIContext *ctx) {
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
@@ -381,6 +580,30 @@ static void state_cleanup_rooms(UIContext *ctx) {
     (void)ctx;
 }
 
+static void state_draw_rooms_add(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_rooms_add(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_rooms_add(UIContext *ctx, int key) {
+    NavDirection dir = ui_input_process_key(ctx, key);
+    if (dir == NAV_BACK || key == 27) {
+        ctx->current_state = UI_STATE_ROOMS;
+        ctx->needs_redraw = true;
+    }
+    return dir;
+}
+
+static void state_cleanup_rooms_add(UIContext *ctx) {
+    (void)ctx;
+}
+
 static void state_draw_reservations(UIContext *ctx) {
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
@@ -448,6 +671,30 @@ static void state_cleanup_reservations(UIContext *ctx) {
     (void)ctx;
 }
 
+static void state_draw_reservations_add(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_reservations_add(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_reservations_add(UIContext *ctx, int key) {
+    NavDirection dir = ui_input_process_key(ctx, key);
+    if (dir == NAV_BACK || key == 27) {
+        ctx->current_state = UI_STATE_RESERVATIONS;
+        ctx->needs_redraw = true;
+    }
+    return dir;
+}
+
+static void state_cleanup_reservations_add(UIContext *ctx) {
+    (void)ctx;
+}
+
 static void state_draw_billing(UIContext *ctx) {
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
@@ -478,6 +725,30 @@ static void state_cleanup_billing(UIContext *ctx) {
     (void)ctx;
 }
 
+static void state_draw_billing_create(UIContext *ctx) {
+    Layout layout;
+    ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
+
+    ui_draw_header(ctx, &layout);
+    ui_draw_sidebar(ctx, &layout);
+    ui_draw_billing_create(ctx, &layout);
+    ui_draw_footer(ctx, &layout);
+    ui_draw_status_message(ctx, &layout);
+}
+
+static NavDirection state_handle_billing_create(UIContext *ctx, int key) {
+    NavDirection dir = ui_input_process_key(ctx, key);
+    if (dir == NAV_BACK || key == 27) {
+        ctx->current_state = UI_STATE_BILLING;
+        ctx->needs_redraw = true;
+    }
+    return dir;
+}
+
+static void state_cleanup_billing_create(UIContext *ctx) {
+    (void)ctx;
+}
+
 static void state_draw_help(UIContext *ctx) {
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
@@ -491,8 +762,8 @@ static void state_draw_help(UIContext *ctx) {
 
 static NavDirection state_handle_help(UIContext *ctx, int key) {
     NavDirection dir = ui_input_process_key(ctx, key);
-    if (dir == NAV_BACK || key == KEY_F(1)) {
-        ctx->current_state = ctx->previous_state;
+    if (dir == NAV_BACK || key == KEY_F(1) || key == KEY_EXIT || key == 27) {
+        ctx->current_state = g_help_return_state;
         ctx->needs_redraw = true;
     }
     return dir;
@@ -600,6 +871,9 @@ void ui_run(UIContext *ctx) {
             clear();
             
             UIState state = ctx->current_state;
+            if (state == UI_STATE_HELP && ctx->previous_state != UI_STATE_HELP) {
+                g_help_return_state = ctx->previous_state;
+            }
             if (state < UI_STATE_COUNT && state_handlers[state].draw) {
                 state_handlers[state].draw(ctx);
             }

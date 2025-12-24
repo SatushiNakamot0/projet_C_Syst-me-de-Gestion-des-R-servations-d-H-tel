@@ -22,4 +22,3 @@ void ui_cleanup(UIContext *ctx);
 void ui_redraw(UIContext *ctx);
 
 #endif /* UI_H */
-
