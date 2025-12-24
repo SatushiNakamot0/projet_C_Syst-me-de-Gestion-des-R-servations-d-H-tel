@@ -2,14 +2,13 @@
 #define CLIENTS_H
 #include "structures.h"
 
-void ajouter_client(Client clients[], int *count);
+/* Add a new client - returns 0 on success, <0 on failure */
+int client_ajouter(Client *clients, int *count, const Client *nouveau_client);
 
-void afficher_clients(const Client clients[], int count);
+/* Modify an existing client - returns 0 on success, <0 on failure */
+int client_modifier(Client *clients, int count, const Client *modifie);
 
-void rechercher_client_par_nom(const Client clients[], int count);
-
-void modifier_client(Client clients[], int count);
-
-void supprimer_client(Client clients[], int *count);
+/* Delete a client by ID - returns 0 on success, <0 on failure */
+int client_supprimer(Client *clients, int *count, int id);
 
 #endif

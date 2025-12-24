@@ -2,6 +2,7 @@
 #define UI_STATE_H
 
 #include <stdbool.h>
+#include <ncurses.h>
 #include "../include/structures.h"
 
 /* ============================================================================
@@ -12,7 +13,8 @@
  * ============================================================================ */
 
 /* UI State enumeration - represents all possible screens */
-typedef enum {
+typedef enum
+{
     UI_STATE_DASHBOARD = 0,
     UI_STATE_CLIENTS,
     UI_STATE_CLIENTS_LIST,
@@ -31,13 +33,26 @@ typedef enum {
     UI_STATE_BILLING,
     UI_STATE_BILLING_LIST,
     UI_STATE_BILLING_CREATE,
+
+    UI_STATE_CLIENT_DASHBOARD,
+    UI_STATE_CLIENT_MY_RESERVATIONS,
+    UI_STATE_CLIENT_BOOK,
     UI_STATE_HELP,
     UI_STATE_EXIT,
-    UI_STATE_COUNT  /* Sentinel value for array sizing */
+    UI_STATE_COUNT /* Sentinel value for array sizing */
 } UIState;
 
+/* App State enumeration - represents focus/navigation state */
+typedef enum
+{
+    STATE_SIDEBAR,      // User is moving up/down the main menu
+    STATE_CONTENT_LIST, // User is scrolling through a list (Rooms/Clients) in the right panel
+    STATE_FORM_INPUT    // User is typing inside a popup form (Add Room/Edit Client)
+} AppState;
+
 /* Navigation direction for menu navigation */
-typedef enum {
+typedef enum
+{
     NAV_UP = 0,
     NAV_DOWN,
     NAV_LEFT,
@@ -48,71 +63,84 @@ typedef enum {
 } NavDirection;
 
 /* UI Context - maintains all application state */
-typedef struct {
+typedef struct
+{
     /* Current UI state */
     UIState current_state;
     UIState previous_state;
+    AppState app_state; /* Current focus state */
     
+    /* Auth State */
+    char current_username[50];
+    char current_role[20];
+
     /* Application data */
     Client *clients;
     int clients_count;
     int clients_capacity;
-    
+
     Chambre *chambres;
     int chambres_count;
     int chambres_capacity;
-    
+
     Reservation *reservations;
     int reservations_count;
     int reservations_capacity;
-    
+
     Facture *factures;
     int factures_count;
     int factures_capacity;
-    
+
     /* UI Navigation state */
-    int selected_menu_item;      /* Selected item in sidebar */
-    int selected_list_item;       /* Selected item in content area */
-    int scroll_offset;            /* Scroll position in lists */
-    int max_visible_items;        /* Max items visible in current view */
-    
+    int selected_menu_item; /* Selected item in sidebar */
+    int selected_list_item; /* Selected item in content area */
+    int scroll_offset;      /* Scroll position in lists */
+    int max_visible_items;  /* Max items visible in current view */
+
     /* Form input state */
-    char input_buffer[256];       /* Current input buffer */
-    int input_cursor_pos;         /* Cursor position in input */
-    int input_mode;               /* 0=normal, 1=insert, 2=search */
-    
+    char input_buffer[256]; /* Current input buffer */
+    int input_cursor_pos;   /* Cursor position in input */
+    int input_mode;         /* 0=normal, 1=insert, 2=search */
+
     /* Search state */
     char search_query[128];
     int search_results_count;
-    int *search_results;          /* Array of indices matching search */
-    
+    int *search_results; /* Array of indices matching search */
+
     /* Notification/Message state */
     char status_message[256];
-    int status_type;              /* 0=info, 1=success, 2=warning, 3=error */
-    int status_timeout;           /* Frames until message clears */
-    
+    int status_type;    /* 0=info, 1=success, 2=warning, 3=error */
+    int status_timeout; /* Frames until message clears */
+
     /* Terminal dimensions */
     int term_rows;
     int term_cols;
-    bool needs_redraw;            /* Flag to force full redraw */
-    
+    bool needs_redraw; /* Flag to force full redraw */
+
+    /* UI Windows */
+    WINDOW *header_win;
+    WINDOW *sidebar_win;
+    WINDOW *content_win;
+    WINDOW *footer_win;
+    WINDOW *status_win;
+
     /* Dialog/Modal state */
     bool dialog_active;
     char dialog_title[64];
     char dialog_message[256];
-    int dialog_result;            /* User's choice in dialog */
-    
+    int dialog_result; /* User's choice in dialog */
+
     /* Form input state */
-    int current_field;           /* Index of current form field */
-    char** field_values;         /* Array of form field values */
-    int num_fields;              /* Number of fields in current form */
-    int max_field_length;        /* Maximum length for current field */
-    int field_x, field_y;        /* Position of current field on screen */
-    
+    int current_field;    /* Index of current form field */
+    char **field_values;  /* Array of form field values */
+    int num_fields;       /* Number of fields in current form */
+    int max_field_length; /* Maximum length for current field */
+    int field_x, field_y; /* Position of current field on screen */
+
     /* Input mode flags */
-    bool in_input_mode;          /* Whether we're in text input mode */
-    bool input_modified;         /* Whether input has been modified */
-    
+    bool in_input_mode;  /* Whether we're in text input mode */
+    bool input_modified; /* Whether input has been modified */
+
 } UIContext;
 
 /* Function pointer type for state handlers */
@@ -121,19 +149,19 @@ typedef NavDirection (*StateInputFunc)(UIContext *ctx, int key);
 typedef void (*StateCleanupFunc)(UIContext *ctx);
 
 /* State handler structure */
-typedef struct {
+typedef struct
+{
     StateDrawFunc draw;
     StateInputFunc handle_input;
     StateCleanupFunc cleanup;
-    const char *name;  /* For debugging */
+    const char *name; /* For debugging */
 } StateHandler;
 
 /* Forward declarations */
-UIContext* ui_context_create(void);
+UIContext *ui_context_create(void);
 void ui_context_destroy(UIContext *ctx);
 void ui_context_resize(UIContext *ctx, int rows, int cols);
 bool ui_context_load_data(UIContext *ctx);
 void ui_context_save_data(UIContext *ctx);
 
 #endif /* UI_STATE_H */
-

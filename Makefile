@@ -9,12 +9,11 @@ UI_DIR = ui
 SRCS = main.c \
        $(SRC_DIR)/clients.c \
        $(SRC_DIR)/chambres.c \
-       $(SRC_DIR)/facturation.c \
        $(SRC_DIR)/reservations.c \
        $(SRC_DIR)/fichiers.c \
        $(SRC_DIR)/data_init.c \
        $(SRC_DIR)/debug.c \
-       $(SRC_DIR)/safe_input.c \
+       $(SRC_DIR)/auth.c \
        $(UI_DIR)/ui.c \
        $(UI_DIR)/ui_theme.c \
        $(UI_DIR)/ui_layout.c \
@@ -23,7 +22,13 @@ SRCS = main.c \
        $(UI_DIR)/ui_input.c \
        $(UI_DIR)/ui_components.c \
        $(UI_DIR)/ui_redraw.c \
-       $(UI_DIR)/ui_form.c
+       $(UI_DIR)/ui_form.c \
+       $(UI_DIR)/ui_reservations.c \
+       $(UI_DIR)/ui_clients.c \
+       $(UI_DIR)/ui_rooms.c \
+       $(UI_DIR)/ui_login.c \
+       $(UI_DIR)/ui_client_portal.c \
+       $(UI_DIR)/ui_billing.c
 
 # Object files
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)

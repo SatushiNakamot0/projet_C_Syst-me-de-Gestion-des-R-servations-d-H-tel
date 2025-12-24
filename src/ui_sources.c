@@ -1,8 +1,0 @@
-#include "../ui/ui.c"
-#include "../ui/ui_components.c"
-#include "../ui/ui_draw.c"
-#include "../ui/ui_input.c"
-#include "../ui/ui_layout.c"
-#include "../ui/ui_redraw.c"
-#include "../ui/ui_theme.c"
-#include "../ui/ui_utils.c"

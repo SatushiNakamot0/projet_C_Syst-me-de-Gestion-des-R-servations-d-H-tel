@@ -2,10 +2,12 @@
 #define UI_UTILS_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
 #include "../include/structures.h"
-#include "ui_state.h"  // For UIContext definition
+#include "ui_state.h" // For UIContext definition
 
 /* ============================================================================
  * UI UTILITIES
@@ -33,7 +35,8 @@ void ui_utils_draw_table_header(int y, int x, const char *headers[], int widths[
 void ui_utils_draw_table_row(int y, int x, const char *values[], int widths[], int count, bool selected, bool even);
 
 /* Pagination */
-typedef struct {
+typedef struct
+{
     int current_page;
     int total_pages;
     int items_per_page;
@@ -56,16 +59,16 @@ void ui_utils_format_number(char *dest, int number, size_t dest_size);
 
 /* Status message helpers */
 void ui_utils_show_status(UIContext *ctx, int type, const char *format, ...);
+void ui_set_status(UIContext *ctx, const char *message, int type);
 
 /* Empty state drawing */
 void ui_utils_draw_empty_state(int y, int x, int h, int w, const char *item_name, char action_key);
 
 /* Error message formatting */
-void ui_utils_format_error_message(char *dest, size_t dest_size, const char *type, 
+void ui_utils_format_error_message(char *dest, size_t dest_size, const char *type,
                                    const char *what, const char *why, const char *how_to_fix);
 
 /* Status message timeout calculation */
 int ui_utils_get_status_timeout(int message_type);
 
 #endif /* UI_UTILS_H */
-

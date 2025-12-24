@@ -32,6 +32,7 @@ typedef struct
     char date_debut[11];
     char date_fin[11];
     float montant;
+    char statut[20];
 } Reservation;
 
 typedef struct Facture

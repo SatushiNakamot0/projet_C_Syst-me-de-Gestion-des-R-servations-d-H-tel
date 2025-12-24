@@ -1,6 +1,7 @@
 #include "ui_input.h"
 #include <ncurses.h>
 #include <string.h>
+#include <ctype.h>
 
 /* ============================================================================
  * UI INPUT IMPLEMENTATION
@@ -9,54 +10,193 @@
  * Handles both navigation and form input modes.
  * ============================================================================ */
 
-void ui_input_init(void) {
+void ui_input_init(void)
+{
     /* Enable keypad for special keys */
     keypad(stdscr, TRUE);
-    /* Enable non-blocking input */
-    nodelay(stdscr, TRUE);
+    /* Enable blocking input - prevents CPU spin */
+    nodelay(stdscr, FALSE);
     /* Don't echo input */
     noecho();
     /* Enable function keys */
     meta(stdscr, TRUE);
 }
 
-int ui_input_get_key(void) {
+int ui_input_get_key(void)
+{
     return getch();
 }
 
-bool ui_input_is_arrow_key(int key) {
-    return (key == KEY_UP || key == KEY_DOWN || 
+bool ui_input_is_arrow_key(int key)
+{
+    return (key == KEY_UP || key == KEY_DOWN ||
             key == KEY_LEFT || key == KEY_RIGHT);
 }
 
-NavDirection ui_input_arrow_to_direction(int key) {
-    switch (key) {
-        case KEY_UP:    return NAV_UP;
-        case KEY_DOWN:  return NAV_DOWN;
-        case KEY_LEFT:  return NAV_LEFT;
-        case KEY_RIGHT: return NAV_RIGHT;
-        default:        return NAV_NONE;
+NavDirection ui_input_arrow_to_direction(int key)
+{
+    switch (key)
+    {
+    case KEY_UP:
+        return NAV_UP;
+    case KEY_DOWN:
+        return NAV_DOWN;
+    case KEY_LEFT:
+        return NAV_LEFT;
+    case KEY_RIGHT:
+        return NAV_RIGHT;
+    default:
+        return NAV_NONE;
     }
 }
 
-void ui_input_process_form_input(UIContext *ctx, int key) {
-    if (key == KEY_BACKSPACE || key == 127 || key == 8) {
+/* Reads string input safely with visual feedback
+ * Returns: 1 on Enter, 0 on ESC/Cancel
+ */
+int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len)
+{
+    if (!win || !buffer || max_len <= 0)
+        return 0;
+
+    int len = strlen(buffer);
+    int cursor_pos = len;
+
+    // Display initial buffer
+    mvwprintw(win, y, x, "%s", buffer);
+    wmove(win, y, x + cursor_pos);
+    wrefresh(win);
+
+    while (1)
+    {
+        int ch = wgetch(win);
+
+        if (ch == '\n' || ch == KEY_ENTER)
+        {
+            buffer[len] = '\0'; // Ensure null termination
+            return 1;           // Success
+        }
+        else if (ch == 27) // ESC
+        {
+            return 0; // Cancel
+        }
+        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8)
+        {
+            if (cursor_pos > 0)
+            {
+                // Shift characters left
+                memmove(&buffer[cursor_pos - 1], &buffer[cursor_pos], len - cursor_pos + 1);
+                cursor_pos--;
+                len--;
+            }
+        }
+        else if (ch == KEY_LEFT)
+        {
+            if (cursor_pos > 0)
+                cursor_pos--;
+        }
+        else if (ch == KEY_RIGHT)
+        {
+            if (cursor_pos < len)
+                cursor_pos++;
+        }
+        else if (ch >= 32 && ch <= 126 && len < max_len - 1)
+        {
+            // Insert character
+            memmove(&buffer[cursor_pos + 1], &buffer[cursor_pos], len - cursor_pos + 1);
+            buffer[cursor_pos] = (char)ch;
+            cursor_pos++;
+            len++;
+        }
+        else if (ch == KEY_F(2))
+        {
+            return 2; // Special code for Register/F2
+        }
+
+        // Redraw the line
+        mvwprintw(win, y, x, "%-*s", max_len - 1, buffer);
+        wmove(win, y, x + cursor_pos);
+        wrefresh(win);
+    }
+}
+
+/* Safe string reader that GUARANTEES no double-echo
+ * usage: ui_read_string_safe(win, y, x, buffer, 30);
+ */
+void ui_read_string_safe(WINDOW *win, int y, int x, char *buffer, int max_len) {
+    int len = strlen(buffer);
+    int ch;
+    // 1. FORCE STATE (The Nuclear Option)
+    noecho();
+    cbreak();
+    curs_set(1);
+    keypad(win, TRUE);
+    // 2. Draw initial buffer (in case of edit mode)
+    mvwprintw(win, y, x, "%s", buffer);
+    wmove(win, y, x + len);
+    wrefresh(win);
+    // 3. The Controlled Loop
+    while (1) {
+        ch = wgetch(win);
+        if (ch == '\n' || ch == KEY_ENTER) {
+            break; // Submit
+        } else if (ch == 27) { // ESC
+            return; // Cancel (keep buffer as is)
+        } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+            if (len > 0) {
+                len--;
+                buffer[len] = '\0';
+                // Manual Erase: Move back, print space, move back
+                mvwaddch(win, y, x + len, ' ');
+                wmove(win, y, x + len);
+            }
+        } else if (isprint(ch)) {
+            if (len < max_len - 1) {
+                // Manual Print: ONLY HERE.
+                mvwaddch(win, y, x + len, ch);
+                buffer[len] = ch;
+                len++;
+                buffer[len] = '\0';
+            }
+        }
+        wrefresh(win);
+    }
+    // Ensure string is null-terminated
+    buffer[len] = '\0';
+    // 4. Restore Cursor
+    curs_set(0);
+}
+
+
+void ui_input_process_form_input(UIContext *ctx, int key)
+{
+    if (key == KEY_BACKSPACE || key == 127 || key == 8)
+    {
         /* Backspace */
-        if (ctx->input_cursor_pos > 0) {
+        if (ctx->input_cursor_pos > 0)
+        {
             ctx->input_cursor_pos--;
             ctx->input_buffer[ctx->input_cursor_pos] = '\0';
         }
-    } else if (key == KEY_LEFT) {
-        if (ctx->input_cursor_pos > 0) {
+    }
+    else if (key == KEY_LEFT)
+    {
+        if (ctx->input_cursor_pos > 0)
+        {
             ctx->input_cursor_pos--;
         }
-    } else if (key == KEY_RIGHT) {
-        if (ctx->input_cursor_pos < (int)strlen(ctx->input_buffer)) {
+    }
+    else if (key == KEY_RIGHT)
+    {
+        if (ctx->input_cursor_pos < (int)strlen(ctx->input_buffer))
+        {
             ctx->input_cursor_pos++;
         }
-    } else if (key >= 32 && key <= 126) {
+    }
+    else if (key >= 32 && key <= 126)
+    {
         /* Printable character */
-        if (ctx->input_cursor_pos < (int)(sizeof(ctx->input_buffer) - 1)) {
+        if (ctx->input_cursor_pos < (int)(sizeof(ctx->input_buffer) - 1))
+        {
             ctx->input_buffer[ctx->input_cursor_pos] = (char)key;
             ctx->input_cursor_pos++;
             ctx->input_buffer[ctx->input_cursor_pos] = '\0';
@@ -64,92 +204,99 @@ void ui_input_process_form_input(UIContext *ctx, int key) {
     }
 }
 
-NavDirection ui_input_process_key(UIContext *ctx, int key) {
+NavDirection ui_input_process_key(UIContext *ctx, int key)
+{
     /* Handle form input mode */
-    if (ctx->input_mode == 1 || ctx->input_mode == 2) {
-        if (key == 27) { /* ESC */
+    if (ctx->input_mode == 1 || ctx->input_mode == 2)
+    {
+        if (key == 27)
+        { /* ESC */
             ctx->input_mode = 0;
             ctx->input_buffer[0] = '\0';
             ctx->input_cursor_pos = 0;
             return NAV_BACK;
-        } else {
+        }
+        else
+        {
             ui_input_process_form_input(ctx, key);
             return NAV_NONE;
         }
     }
-    
+
     /* Normal navigation mode */
-    switch (key) {
-        case KEY_UP:
-            return NAV_UP;
-            
-        case KEY_DOWN:
-            return NAV_DOWN;
-            
-        case KEY_LEFT:
-            return NAV_LEFT;
-            
-        case KEY_RIGHT:
-            return NAV_RIGHT;
-            
-        case '\n':
-        case KEY_ENTER:
-        case ' ':
+    switch (key)
+    {
+    case KEY_UP:
+        return NAV_UP;
+
+    case KEY_DOWN:
+        return NAV_DOWN;
+
+    case KEY_LEFT:
+        return NAV_LEFT;
+
+    case KEY_RIGHT:
+        return NAV_RIGHT;
+
+    case '\n':
+    case KEY_ENTER:
+    case ' ':
+        return NAV_SELECT;
+
+    case 27: /* ESC */
+        return NAV_BACK;
+
+    case 'q':
+    case 'Q':
+        if (ctx->current_state == UI_STATE_EXIT)
+        {
             return NAV_SELECT;
-            
-        case 27: /* ESC */
-            return NAV_BACK;
-            
-        case 'q':
-        case 'Q':
-            if (ctx->current_state == UI_STATE_EXIT) {
-                return NAV_SELECT;
-            }
-            /* Fall through to set exit state */
-            ctx->current_state = UI_STATE_EXIT;
-            return NAV_SELECT;
-            
-        case KEY_F(1):
-            if (ctx->current_state != UI_STATE_HELP) {
-                ctx->previous_state = ctx->current_state;
-                ctx->current_state = UI_STATE_HELP;
-                ctx->needs_redraw = true;
-            }
-            return NAV_NONE;
-            
-        /* Quick navigation shortcuts */
-        case '1':
-            ctx->current_state = UI_STATE_DASHBOARD;
-            ctx->selected_menu_item = 0;
+        }
+        /* Fall through to set exit state */
+        ctx->current_state = UI_STATE_EXIT;
+        return NAV_SELECT;
+
+    case KEY_F(1):
+        if (ctx->current_state != UI_STATE_HELP)
+        {
+            ctx->previous_state = ctx->current_state;
+            ctx->current_state = UI_STATE_HELP;
             ctx->needs_redraw = true;
-            return NAV_NONE;
-            
-        case '2':
-            ctx->current_state = UI_STATE_CLIENTS;
-            ctx->selected_menu_item = 1;
-            ctx->needs_redraw = true;
-            return NAV_NONE;
-            
-        case '3':
-            ctx->current_state = UI_STATE_ROOMS;
-            ctx->selected_menu_item = 2;
-            ctx->needs_redraw = true;
-            return NAV_NONE;
-            
-        case '4':
-            ctx->current_state = UI_STATE_RESERVATIONS;
-            ctx->selected_menu_item = 3;
-            ctx->needs_redraw = true;
-            return NAV_NONE;
-            
-        case '5':
-            ctx->current_state = UI_STATE_BILLING;
-            ctx->selected_menu_item = 4;
-            ctx->needs_redraw = true;
-            return NAV_NONE;
-            
-        default:
-            return NAV_NONE;
+        }
+        return NAV_NONE;
+
+    /* Quick navigation shortcuts */
+    case '1':
+        ctx->current_state = UI_STATE_DASHBOARD;
+        ctx->selected_menu_item = 0;
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+
+    case '2':
+        ctx->current_state = UI_STATE_CLIENTS;
+        ctx->selected_menu_item = 1;
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+
+    case '3':
+        ctx->current_state = UI_STATE_ROOMS;
+        ctx->selected_menu_item = 2;
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+
+    case '4':
+        ctx->current_state = UI_STATE_RESERVATIONS;
+        ctx->selected_menu_item = 3;
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+
+    case '5':
+        ctx->current_state = UI_STATE_BILLING;
+        ctx->selected_menu_item = 4;
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+
+    default:
+        return NAV_NONE;
     }
 }
-

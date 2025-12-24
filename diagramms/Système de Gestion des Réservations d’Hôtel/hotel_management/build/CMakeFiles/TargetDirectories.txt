@@ -1,3 +1,0 @@
-C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build/CMakeFiles/hotel_management.dir
-C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build/CMakeFiles/edit_cache.dir
-C:/Users/yazid/OneDrive/Bureau/mini_project_C/Système de Gestion des Réservations d’Hôtel/hotel_management/build/CMakeFiles/rebuild_cache.dir

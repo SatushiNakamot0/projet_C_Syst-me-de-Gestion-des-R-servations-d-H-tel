@@ -1,23 +1,58 @@
-# Guide Windows l'Hotel Reservation System
+# Windows Setup Guide
 
-## Khouya, hadak howa guide bach t'installi w t'runi l'project f Windows 10/11. Ghadi n'kounou n'sta3mlo MinGW-w64 (GCC) w PDCurses, 7it Ncurses standard ma ykhdamch f Windows.
+Quick guide for building and running the Hotel Reservation System on Windows.
 
-### Step 1: Installi MSYS2 wala MinGW
+## Prerequisites
 
-- MSYS2 howa environment li y3tik gcc w make, li ghadi n'kounou n'khdmo bihom bach n'compilew C code.
-- Downloadi MSYS2 men site officiel: https://www.msys2.org/
-- Installih f C:/msys64 (default path).
-- Ba3d installation, runi MSYS2 UCRT64 terminal w ktb: `pacman -Syu` bach update.
-- Ba3d, installi gcc w make: `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make`
+### Install MSYS2 (Recommended)
 
-### Step 2: Downloadi PDCurses.dll
+1. Download MSYS2 from: https://www.msys2.org/
+2. Install to default path: `C:\msys64`
+3. Open **MSYS2 UCRT64** terminal
+4. Update packages:
+   ```bash
+   pacman -Syu
+   ```
+5. Install build tools:
+   ```bash
+   pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ncurses
+   ```
 
-- PDCurses howa library li ykhdam f Windows bach Ncurses.
-- Downloadi PDCurses.dll men site officiel: https://pdcurses.org/
-- 7ot PDCurses.dll f same folder m3a l'.exe (ya3ni f build/ folder ba3d compilation).
+## Building the Project
 
-### Step 3: Runi l'project
+Open MSYS2 UCRT64 terminal in the project directory:
 
-- Double-clicki 3la run_windows.bat.
-- Hadak script ghadi ychecki build folder, y'run CMake, y'compile, w y'run l'app.
-- Law kan chi error, pause ghadi y'khdar l'window mftou7a bach t'chofi.
+```bash
+# Clean previous builds
+make clean
+
+# Compile
+make
+
+# Run the application
+./hotel_app.exe
+```
+
+## Troubleshooting
+
+**Issue: `make` command not found**
+- Make sure you're using **MSYS2 UCRT64** terminal, not regular Windows Command Prompt
+
+**Issue: ncurses not found**
+- Reinstall ncurses: `pacman -S mingw-w64-ucrt-x86_64-ncurses`
+
+**Issue: Terminal display issues**
+- Use Windows Terminal or MSYS2 native terminal for best results
+- Avoid CMD.exe as it has limited Unicode support
+
+## Alternative: Using Git Bash
+
+If you have Git for Windows installed:
+
+1. Install ncurses manually or use pre-built binaries
+2. Run `make` from Git Bash terminal
+3. Execute `./hotel_app.exe`
+
+---
+
+For detailed project documentation, see [README.md](README.md)
