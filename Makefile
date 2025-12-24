@@ -15,6 +15,7 @@ SRCS = main.c \
        $(SRC_DIR)/data_init.c \
        $(SRC_DIR)/debug.c \
        $(SRC_DIR)/safe_input.c \
+       $(SRC_DIR)/auth.c \
        $(UI_DIR)/ui.c \
        $(UI_DIR)/ui_theme.c \
        $(UI_DIR)/ui_layout.c \

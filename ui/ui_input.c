@@ -106,6 +106,10 @@ int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len)
             cursor_pos++;
             len++;
         }
+        else if (ch == KEY_F(2))
+        {
+            return 2; // Special code for Register/F2
+        }
 
         // Redraw the line
         mvwprintw(win, y, x, "%-*s", max_len - 1, buffer);

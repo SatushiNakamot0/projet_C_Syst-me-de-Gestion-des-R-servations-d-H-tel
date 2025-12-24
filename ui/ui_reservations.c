@@ -2,6 +2,7 @@
 #include <ncurses.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <ctype.h>
 #include "../include/structures.h"
 #include "../include/reservations.h"
@@ -535,8 +536,26 @@ void show_billing_modal(Reservation *reservation, Client *client, Chambre *room)
     cbreak();
     curs_set(0);
 
-    // Calculate billing info
-    int days = calculer_nuits(reservation->date_debut, reservation->date_fin) + 1; // Inclusive
+    // Calculate billing info using mktime
+    struct tm tm_start = {0};
+    struct tm tm_end = {0};
+
+    // Parse DD/MM/YYYY
+    sscanf(reservation->date_debut, "%d/%d/%d", &tm_start.tm_mday, &tm_start.tm_mon, &tm_start.tm_year);
+    sscanf(reservation->date_fin, "%d/%d/%d", &tm_end.tm_mday, &tm_end.tm_mon, &tm_end.tm_year);
+
+    // Adjust for struct tm (Month 0-11, Year since 1900)
+    tm_start.tm_mon -= 1; tm_start.tm_year -= 1900;
+    tm_end.tm_mon -= 1;   tm_end.tm_year -= 1900;
+
+    // Normalization (handles leap years etc)
+    time_t t_start = mktime(&tm_start);
+    time_t t_end = mktime(&tm_end);
+
+    double seconds = difftime(t_end, t_start);
+    int days = (int)(seconds / (24 * 3600));
+    if (days < 1) days = 1;
+
     float total = days * room->prix;
 
     // Dim background
@@ -551,46 +570,60 @@ void show_billing_modal(Reservation *reservation, Client *client, Chambre *room)
     attroff(ui_theme_get_pair(COLOR_PAIR_DIM));
     refresh();
 
-    int height = 12, width = 50;
+    int height = 14, width = 55;
     int start_y = (LINES - height) / 2;
     int start_x = (COLS - width) / 2;
 
     WINDOW *win = newwin(height, width, start_y, start_x);
-    if (!win)
-        return;
-
     box(win, 0, 0);
-    mvwprintw(win, 1, (width - 10) / 2, "FACTURE");
+    mvwprintw(win, 1, (width - 10) / 2, " FACTURE ");
 
-    mvwprintw(win, 3, 2, "ID: #%d", reservation->id);
-    mvwprintw(win, 4, 2, "Client: %s %s", client->nom, client->prenom);
-    mvwprintw(win, 5, 2, "Duree: %d Nuits", days);
-    mvwprintw(win, 6, 2, "Total: %.2f MAD", total);
+    mvwprintw(win, 3, 4, "Facture #: %d", reservation->id);
+    mvwprintw(win, 4, 4, "Client   : %s %s", client->nom, client->prenom);
+    mvwprintw(win, 5, 4, "Chambre  : %d (Prix: %.2f MAD/Nuit)", room->numero, room->prix);
+    mvwprintw(win, 6, 4, "Periode  : %s -> %s", reservation->date_debut, reservation->date_fin);
+    
+    wattron(win, A_BOLD);
+    mvwprintw(win, 8, 4, "Nuits    : %d", days);
+    mvwprintw(win, 9, 4, "TOTAL    : %.2f MAD", total);
+    wattroff(win, A_BOLD);
 
-    mvwprintw(win, height - 2, 2, "P: Print | ESC: Close");
+    mvwprintw(win, height - 2, 2, " [P] Print to File | [ESC] Close ");
     wrefresh(win);
+
+    char msg[128] = {0};
 
     while (1)
     {
+        if(strlen(msg)>0) mvwprintw(win, 11, 4, "Status: %s", msg);
+        wrefresh(win);
+
         int ch = getch();
-        if (ch == 27)
-        { // ESC
+        if (ch == 27) // ESC
+        { 
             break;
         }
         else if (ch == 'p' || ch == 'P')
         {
-            // Simulate print by logging to file
-            FILE *fp = fopen("facture_print.txt", "a");
+            char filename[64];
+            snprintf(filename, sizeof(filename), "facture_%d.txt", reservation->id);
+            FILE *fp = fopen(filename, "w");
             if (fp)
             {
-                fprintf(fp, "FACTURE #%d\n", reservation->id);
+                fprintf(fp, "=== FACTURE HOTEL ===\n");
+                fprintf(fp, "ID Reservation: %d\n", reservation->id);
                 fprintf(fp, "Client: %s %s\n", client->nom, client->prenom);
+                fprintf(fp, "Chambre: %d\n", room->numero);
+                fprintf(fp, "Dates: %s - %s\n", reservation->date_debut, reservation->date_fin);
                 fprintf(fp, "Duree: %d Nuits\n", days);
-                fprintf(fp, "Total: %.2f MAD\n\n", total);
+                fprintf(fp, "Prix Unitaire: %.2f MAD\n", room->prix);
+                fprintf(fp, "---------------------\n");
+                fprintf(fp, "TOTAL: %.2f MAD\n", total);
+                fprintf(fp, "=====================\n");
                 fclose(fp);
-                mvwprintw(win, 8, 2, "Printed to facture_print.txt");
-                wrefresh(win);
-                napms(1000);
+                snprintf(msg, sizeof(msg), "Saved to %s!", filename);
+            } else {
+                strcpy(msg, "Error saving file!");
             }
         }
     }
