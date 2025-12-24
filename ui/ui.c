@@ -4,6 +4,9 @@
 #include "ui_layout.h"
 #include "ui_draw.h"
 #include "ui_form.h"
+#include "ui_reservations.h"
+#include "ui_clients.h"
+#include "ui_rooms.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -34,6 +37,7 @@ static bool g_running = false;
 static UIState g_help_return_state = UI_STATE_DASHBOARD;
 
 /* Handler dyal signal باش ila تبدلات taille dyal l-window */
+#ifndef _WIN32
 static void handle_resize(int sig)
 {
     (void)sig; /* parameter ma msta3mlinch */
@@ -45,6 +49,7 @@ static void handle_resize(int sig)
         g_ctx->needs_redraw = true;
     }
 }
+#endif
 
 /* Declarations dyal state handlers */
 static void state_draw_dashboard(UIContext *ctx);
@@ -54,6 +59,7 @@ static void state_cleanup_dashboard(UIContext *ctx);
 /* State machine input handler */
 static NavDirection handle_app_state_input(UIContext *ctx, int key);
 static void draw_content_window(UIContext *ctx, Layout *layout);
+static bool is_form_state(UIState state);
 
 static void state_draw_clients(UIContext *ctx);
 static NavDirection state_handle_clients(UIContext *ctx, int key);
@@ -527,56 +533,11 @@ static void state_draw_clients(UIContext *ctx)
 
 static NavDirection state_handle_clients(UIContext *ctx, int key)
 {
-    /* Only handle actions when in content list state */
-    if (ctx->app_state == STATE_CONTENT_LIST)
-    {
-        /* Get the actual count and indices for display */
-        int display_count = ctx->search_results_count > 0 ? ctx->search_results_count : ctx->clients_count;
-
-        /* Actions */
-        if (key == 'a' || key == 'A')
-        {
-            ctx->current_state = UI_STATE_CLIENTS_ADD;
-            ctx->app_state = STATE_FORM_INPUT;
-            ctx->needs_redraw = true;
-        }
-        else if (key == 'e' || key == 'E')
-        {
-            if (ctx->selected_list_item < display_count)
-            {
-                ctx->current_state = UI_STATE_CLIENTS_EDIT;
-                ctx->app_state = STATE_FORM_INPUT;
-                ctx->needs_redraw = true;
-            }
-        }
-        else if (key == 'd' || key == 'D')
-        {
-            if (ctx->selected_list_item < display_count)
-            {
-                ctx->current_state = UI_STATE_CLIENTS_DELETE;
-                ctx->needs_redraw = true;
-            }
-        }
-        else if (key == 's' || key == 'S')
-        {
-            ctx->current_state = UI_STATE_CLIENTS_SEARCH;
-            ctx->app_state = STATE_FORM_INPUT;
-            ctx->needs_redraw = true;
-        }
-        else if (key == 'c' || key == 'C')
-        {
-            /* Clear search results */
-            free(ctx->search_results);
-            ctx->search_results = NULL;
-            ctx->search_results_count = 0;
-            ctx->selected_list_item = 0;
-            ctx->scroll_offset = 0;
-            ctx->needs_redraw = true;
-        }
-    }
-
-    return NAV_NONE;
+    return (NavDirection)handle_clients_input(ctx, key);
 }
+
+
+
 
 static void state_cleanup_clients(UIContext *ctx)
 {
@@ -626,26 +587,21 @@ static NavDirection state_handle_clients_add(UIContext *ctx, int key)
         {
 
             // Add new client to the array
-            if (ctx->clients_count < ctx->clients_capacity)
+            Client new_client;
+            strncpy(new_client.nom, ctx->field_values[0], sizeof(new_client.nom) - 1);
+            new_client.nom[sizeof(new_client.nom) - 1] = '\0';
+            strncpy(new_client.prenom, ctx->field_values[1], sizeof(new_client.prenom) - 1);
+            new_client.prenom[sizeof(new_client.prenom) - 1] = '\0';
+            strncpy(new_client.email, ctx->field_values[2], sizeof(new_client.email) - 1);
+            new_client.email[sizeof(new_client.email) - 1] = '\0';
+            strncpy(new_client.telephone, ctx->field_values[3], sizeof(new_client.telephone) - 1);
+            new_client.telephone[sizeof(new_client.telephone) - 1] = '\0';
+            // ID is handled by client_ajouter
+
+            int res = client_ajouter(ctx->clients, &ctx->clients_count, &new_client);
+            if (res == 0)
             {
-                LOG_INFO("User submitted client form");
-                LOG_DEBUG("Attempting to save client: %s %s, Email: %s, Tel: %s",
-                          ctx->field_values[0], ctx->field_values[1],
-                          ctx->field_values[2], ctx->field_values[3]);
-
-                Client *new_client = &ctx->clients[ctx->clients_count];
-                strncpy(new_client->nom, ctx->field_values[0], sizeof(new_client->nom) - 1);
-                strncpy(new_client->prenom, ctx->field_values[1], sizeof(new_client->prenom) - 1);
-                strncpy(new_client->email, ctx->field_values[2], sizeof(new_client->email) - 1);
-                strncpy(new_client->telephone, ctx->field_values[3], sizeof(new_client->telephone) - 1);
-                new_client->id = ctx->clients_count + 1; // Simple ID assignment
-
-                // Directly add to array and save (bypass console-based ajouter_client)
-                ctx->clients_count++;
-                sauvegarder_clients(ctx->clients, ctx->clients_count);
-                LOG_INFO("Client saved successfully to file");
-
-                // Success
+                LOG_INFO("Client saved successfully");
                 strcpy(ctx->status_message, "Client added successfully");
                 ctx->status_type = 1; // Success
                 ctx->status_timeout = 60;
@@ -655,11 +611,17 @@ static NavDirection state_handle_clients_add(UIContext *ctx, int key)
                 ctx->needs_redraw = true;
                 return NAV_BACK;
             }
+            else if (res == -2)
+            {
+                LOG_ERROR("Cannot add client: duplicate email");
+                strcpy(ctx->status_message, "Error: Email already exists");
+                ctx->status_type = 3; // Error
+                ctx->status_timeout = 60;
+            }
             else
             {
-                // Error - array is full
-                LOG_ERROR("Cannot add client: database is full");
-                strcpy(ctx->status_message, "Cannot add client: database is full");
+                LOG_ERROR("Cannot add client: database error %d", res);
+                strcpy(ctx->status_message, "Error adding client");
                 ctx->status_type = 3; // Error
                 ctx->status_timeout = 60;
             }
@@ -697,96 +659,42 @@ static void state_draw_clients_edit(UIContext *ctx)
 
 static NavDirection state_handle_clients_edit(UIContext *ctx, int key)
 {
-    // Initialize form with selected client data if first time
-    if (!ctx->in_input_mode && ctx->selected_list_item < ctx->clients_count)
+    (void)key; /* Unused parameter */
+
+    // Use the new refactored form function
+    if (ctx->selected_list_item < ctx->clients_count)
     {
         Client *selected_client = &ctx->clients[ctx->selected_list_item];
 
-        ctx->num_fields = 4;
-        ctx->current_field = 0;
+        int result = show_edit_client_form(selected_client, ctx->clients, ctx->clients_count);
 
-        // Pre-fill form fields with client data FIRST
-        if (!ctx->field_values)
+        if (result == 0)
         {
-            ctx->field_values = calloc(ctx->num_fields, sizeof(char *));
-            for (int i = 0; i < ctx->num_fields; i++)
-            {
-                ctx->field_values[i] = strdup("");
-            }
+            // Success
+            strcpy(ctx->status_message, "Client updated successfully");
+            ctx->status_type = 1; // Success
+            ctx->status_timeout = 60;
+        }
+        else
+        {
+            // Cancelled
+            strcpy(ctx->status_message, "Edit cancelled");
+            ctx->status_type = 0; // Info
+            ctx->status_timeout = 30;
         }
 
-        // Copy client data to form fields
-        strcpy(ctx->field_values[0], selected_client->nom);
-        strcpy(ctx->field_values[1], selected_client->prenom);
-        strcpy(ctx->field_values[2], selected_client->email);
-        strcpy(ctx->field_values[3], selected_client->telephone);
-
-        // Now start input mode with the first field value
-        ui_form_start_input(ctx, 1);                     // Start in text input mode
-        strcpy(ctx->input_buffer, ctx->field_values[0]); // Initialize input buffer with first field
-        ctx->input_cursor_pos = strlen(ctx->input_buffer);
-
-        ctx->needs_redraw = true;
-        return NAV_NONE;
-    }
-
-    // Handle form input
-    int form_result = ui_form_handle_input(ctx, key);
-
-    if (form_result == FORM_CANCEL)
-    {
-        ui_form_cleanup(ctx);
+        // Return to clients list
         ctx->current_state = UI_STATE_CLIENTS;
         ctx->app_state = STATE_CONTENT_LIST;
         ctx->needs_redraw = true;
         return NAV_BACK;
     }
-    else if (form_result == FORM_SUBMIT)
-    {
-        // Validate form
-        if (ctx->field_values[0] && ctx->field_values[1] &&
-            ctx->field_values[2] && ctx->field_values[3])
-        {
-            // Update the selected client
-            Client *client_to_edit = &ctx->clients[ctx->selected_list_item];
-            LOG_INFO("User submitted edit client form for ID %d", client_to_edit->id);
-            LOG_DEBUG("Updating client: %s %s, Email: %s, Tel: %s",
-                      ctx->field_values[0], ctx->field_values[1],
-                      ctx->field_values[2], ctx->field_values[3]);
 
-            // Update client data
-            strncpy(client_to_edit->nom, ctx->field_values[0], sizeof(client_to_edit->nom) - 1);
-            strncpy(client_to_edit->prenom, ctx->field_values[1], sizeof(client_to_edit->prenom) - 1);
-            strncpy(client_to_edit->email, ctx->field_values[2], sizeof(client_to_edit->email) - 1);
-            strncpy(client_to_edit->telephone, ctx->field_values[3], sizeof(client_to_edit->telephone) - 1);
-
-            // Save to file
-            sauvegarder_clients(ctx->clients, ctx->clients_count);
-            LOG_INFO("Client updated successfully");
-
-            // Success message
-            strcpy(ctx->status_message, "Client updated successfully");
-            ctx->status_type = 1; // Success
-            ctx->status_timeout = 60;
-
-            ui_form_cleanup(ctx);
-            ctx->current_state = UI_STATE_CLIENTS;
-            ctx->app_state = STATE_CONTENT_LIST;
-            ctx->needs_redraw = true;
-            return NAV_BACK;
-        }
-        else
-        {
-            // Error - missing required fields
-            LOG_ERROR("Cannot update client: missing required fields");
-            strcpy(ctx->status_message, "All fields are required");
-            ctx->status_type = 3; // Error
-            ctx->status_timeout = 60;
-        }
-    }
-
+    // Fallback if no client selected
+    ctx->current_state = UI_STATE_CLIENTS;
+    ctx->app_state = STATE_CONTENT_LIST;
     ctx->needs_redraw = true;
-    return NAV_NONE;
+    return NAV_BACK;
 }
 
 static void state_cleanup_clients_edit(UIContext *ctx)
@@ -891,40 +799,40 @@ static void state_draw_rooms(UIContext *ctx)
 
 static NavDirection state_handle_rooms(UIContext *ctx, int key)
 {
-    /* Only handle actions when in content list state */
-    if (ctx->app_state == STATE_CONTENT_LIST)
+    // Handle Navigation
+    NavDirection dir = ui_input_process_key(ctx, key);
+    
+    if (key == KEY_UP && ctx->selected_list_item > 0)
     {
-        /* Handle actions */
-        if (key == 'a' || key == 'A')
+        ctx->selected_list_item--;
+        if (ctx->selected_list_item < ctx->scroll_offset)
         {
-            ctx->current_state = UI_STATE_ROOMS_ADD;
-            ctx->app_state = STATE_FORM_INPUT;
-            ctx->needs_redraw = true;
+            ctx->scroll_offset = ctx->selected_list_item;
         }
-        else if (key == 'e' || key == 'E')
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+    }
+    else if (key == KEY_DOWN && ctx->selected_list_item < ctx->chambres_count - 1)
+    {
+        ctx->selected_list_item++;
+        if (ctx->selected_list_item >= ctx->scroll_offset + ctx->max_visible_items)
         {
-            if (ctx->selected_list_item < ctx->chambres_count)
-            {
-                ctx->current_state = UI_STATE_ROOMS_EDIT;
-                ctx->needs_redraw = true;
-            }
+            ctx->scroll_offset = ctx->selected_list_item - ctx->max_visible_items + 1;
         }
-        else if (key == 'd' || key == 'D')
-        {
-            if (ctx->selected_list_item < ctx->chambres_count)
-            {
-                /* Delete room - khas dialog dyal confirmation */
-                ctx->needs_redraw = true;
-            }
-        }
-        else if (key == 's' || key == 'S')
-        {
-            /* Search rooms */
-            ctx->needs_redraw = true;
-        }
+        ctx->needs_redraw = true;
+        return NAV_NONE;
+    }
+    else if (dir == NAV_BACK)
+    {
+        ctx->current_state = UI_STATE_DASHBOARD;
+        ctx->selected_menu_item = 1; // Rooms menu item
+        ctx->needs_redraw = true;
+        return NAV_BACK;
     }
 
-    return NAV_NONE;
+
+
+    return handle_rooms_input(ctx, key);
 }
 
 static void state_cleanup_rooms(UIContext *ctx)
@@ -934,9 +842,6 @@ static void state_cleanup_rooms(UIContext *ctx)
 
 static void state_draw_rooms_add(UIContext *ctx)
 {
-    // Clear screen
-    clear();
-
     // Draw header and sidebar
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
@@ -944,309 +849,44 @@ static void state_draw_rooms_add(UIContext *ctx)
     ui_draw_sidebar(ctx, &layout);
     ui_draw_footer(ctx, &layout);
 
-    // Create centered form window
-    int form_height = 15;
-    int form_width = 50;
-    int start_y = (ctx->term_rows - form_height) / 2;
-    int start_x = (ctx->term_cols - form_width) / 2;
-
-    WINDOW *form_win = newwin(form_height, form_width, start_y, start_x);
-    if (!form_win)
+    // Call the modal only when entering the state
+    if (ctx->current_state != ctx->previous_state)
     {
-        // Fallback to drawing on stdscr
-        mvprintw(start_y, start_x, "Error: Could not create form window");
-        refresh();
-        return;
+        show_add_room_form(ctx->chambres, &ctx->chambres_count, ctx->chambres_capacity);
+        // After modal, return to rooms list
+        ctx->current_state = UI_STATE_ROOMS;
+        ctx->app_state = STATE_CONTENT_LIST;
+        ctx->needs_redraw = true;
     }
-
-    // Draw border
-    box(form_win, 0, 0);
-
-    // Title
-    mvwprintw(form_win, 1, (form_width - 14) / 2, "ADD NEW ROOM");
-
-    // Field labels and values
-    const char *labels[] = {"Room Number:", "Type:", "Price:", "Save"};
-    int num_fields = 4;
-
-    for (int i = 0; i < num_fields; i++)
-    {
-        int field_y = 3 + i * 2;
-
-        // Highlight current field
-        if (i == ctx->current_field)
-        {
-            wattron(form_win, A_REVERSE);
-            mvwprintw(form_win, field_y, 2, "%-12s", labels[i]);
-            wattroff(form_win, A_REVERSE);
-        }
-        else
-        {
-            mvwprintw(form_win, field_y, 2, "%-12s", labels[i]);
-        }
-
-        // Draw field value
-        if (i < 3)
-        { // Input fields
-            const char *value = (ctx->field_values && ctx->field_values[i]) ? ctx->field_values[i] : "";
-            if (i == 1)
-            { // Type field - show selector
-                mvwprintw(form_win, field_y, 15, "[%-20s]", value);
-                if (i == ctx->current_field)
-                {
-                    mvwprintw(form_win, field_y + 1, 15, "Use Left/Right arrows");
-                }
-            }
-            else
-            {
-                mvwprintw(form_win, field_y, 15, "[%-20s]", value);
-            }
-        }
-        else
-        { // Save button
-            if (i == ctx->current_field)
-            {
-                wattron(form_win, A_REVERSE);
-                mvwprintw(form_win, field_y, 15, "[ Save ]");
-                wattroff(form_win, A_REVERSE);
-            }
-            else
-            {
-                mvwprintw(form_win, field_y, 15, "[ Save ]");
-            }
-        }
-    }
-
-    // Instructions
-    mvwprintw(form_win, form_height - 2, 2, "Arrows: Navigate | Enter: Select | ESC: Cancel");
-
-    // Refresh windows
-    wrefresh(form_win);
-    refresh();
-
-    // Clean up
-    delwin(form_win);
 }
 
 static NavDirection state_handle_rooms_add(UIContext *ctx, int key)
 {
-    // Initialize form if first time
-    if (!ctx->field_values)
+    (void)key; /* Unused parameter */
+
+    // Use the new refactored modal form function
+    int result = show_add_room_form(ctx->chambres, &ctx->chambres_count, ctx->chambres_capacity);
+
+    if (result == 0)
     {
-        ctx->num_fields = 4;
-        ctx->current_field = 0;
-        ctx->field_values = calloc(ctx->num_fields, sizeof(char *));
-        for (int i = 0; i < ctx->num_fields; i++)
-        {
-            ctx->field_values[i] = strdup("");
-        }
-        // Default type
-        strcpy(ctx->field_values[1], "Single");
-        ctx->needs_redraw = true;
-        return NAV_NONE;
+        // Success
+        strcpy(ctx->status_message, "Room added successfully");
+        ctx->status_type = 1; // Success
+        ctx->status_timeout = 60;
     }
-
-    // Handle navigation
-    if (key == KEY_UP)
+    else
     {
-        if (ctx->current_field > 0)
-        {
-            ctx->current_field--;
-            ctx->needs_redraw = true;
-        }
-        return NAV_NONE;
-    }
-    else if (key == KEY_DOWN)
-    {
-        if (ctx->current_field < 3)
-        {
-            ctx->current_field++;
-            ctx->needs_redraw = true;
-        }
-        return NAV_NONE;
+        // Cancelled
+        strcpy(ctx->status_message, "Room addition cancelled");
+        ctx->status_type = 0; // Info
+        ctx->status_timeout = 30;
     }
 
-    // Handle field-specific input
-    if (ctx->current_field == 0 || ctx->current_field == 2)
-    { // Room Number or Price - text input
-        if (key == '\n' || key == KEY_ENTER)
-        {
-            // Move to next field
-            if (ctx->current_field < 2)
-            {
-                ctx->current_field++;
-            }
-            else
-            {
-                // On Price, move to Save
-                ctx->current_field = 3;
-            }
-            ctx->needs_redraw = true;
-            return NAV_NONE;
-        }
-        else if (key == KEY_BACKSPACE || key == 127 || key == 8)
-        {
-            size_t len = strlen(ctx->field_values[ctx->current_field]);
-            if (len > 0)
-            {
-                ctx->field_values[ctx->current_field][len - 1] = '\0';
-                ctx->needs_redraw = true;
-            }
-        }
-        else if (key >= 32 && key <= 126)
-        {
-            // For Price, only allow digits and .
-            if (ctx->current_field == 2)
-            {
-                if (!((key >= '0' && key <= '9') || key == '.'))
-                    return NAV_NONE;
-            }
-            size_t len = strlen(ctx->field_values[ctx->current_field]);
-            if (len < 19) // Limit length
-            {
-                ctx->field_values[ctx->current_field][len] = (char)key;
-                ctx->field_values[ctx->current_field][len + 1] = '\0';
-                ctx->needs_redraw = true;
-            }
-        }
-    }
-    else if (ctx->current_field == 1)
-    { // Type selector
-        if (key == KEY_LEFT || key == KEY_RIGHT)
-        {
-            const char *types[] = {"Single", "Double", "Suite"};
-            int current_index = 0;
-            for (int i = 0; i < 3; i++)
-            {
-                if (strcmp(ctx->field_values[1], types[i]) == 0)
-                {
-                    current_index = i;
-                    break;
-                }
-            }
-            if (key == KEY_LEFT)
-            {
-                current_index = (current_index - 1 + 3) % 3;
-            }
-            else
-            {
-                current_index = (current_index + 1) % 3;
-            }
-            strcpy(ctx->field_values[1], types[current_index]);
-            ctx->needs_redraw = true;
-        }
-        else if (key == '\n' || key == KEY_ENTER)
-        {
-            ctx->current_field = 2; // Move to Price
-            ctx->needs_redraw = true;
-        }
-    }
-    else if (ctx->current_field == 3)
-    { // Save button
-        if (key == '\n' || key == KEY_ENTER)
-        {
-            // Submit form
-            if (strlen(ctx->field_values[0]) == 0 || strlen(ctx->field_values[1]) == 0 || strlen(ctx->field_values[2]) == 0)
-            {
-                strcpy(ctx->status_message, "All fields are required");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Validate room number
-            int room_number = atoi(ctx->field_values[0]);
-            if (room_number <= 0)
-            {
-                strcpy(ctx->status_message, "Room number must be a positive integer");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Check if room number already exists
-            if (chambre_numero_existe(ctx->chambres, ctx->chambres_count, room_number))
-            {
-                strcpy(ctx->status_message, "Room number already exists");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Validate price
-            float price = atof(ctx->field_values[2]);
-            if (price <= 0.0f || price > 10000.0f)
-            {
-                strcpy(ctx->status_message, "Price must be between 0.01 and 10000.00");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Check if we have space for new room
-            if (ctx->chambres_count >= ctx->chambres_capacity)
-            {
-                strcpy(ctx->status_message, "Cannot add room: database is full");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Add new room to the array
-            LOG_INFO("User submitted room form");
-            LOG_DEBUG("Attempting to save room: #%d %s (%.2f EUR)",
-                      room_number, ctx->field_values[1], price);
-
-            Chambre *new_room = &ctx->chambres[ctx->chambres_count];
-            new_room->numero = room_number;
-            strncpy(new_room->type, ctx->field_values[1], sizeof(new_room->type) - 1);
-            new_room->prix = price;
-            new_room->disponible = 1; // New rooms are available by default
-
-            // Validate the room data
-            if (!valider_chambre(new_room, ctx->chambres, ctx->chambres_count, -1))
-            {
-                strcpy(ctx->status_message, "Invalid room data");
-                ctx->status_type = 3; // Error
-                ctx->status_timeout = 60;
-                ctx->needs_redraw = true;
-                return NAV_NONE;
-            }
-
-            // Add to array and save
-            ctx->chambres_count++;
-            sauvegarder_chambres(ctx->chambres, ctx->chambres_count);
-            LOG_INFO("Room added successfully to file");
-
-            // Success
-            strcpy(ctx->status_message, "Room added successfully");
-            ctx->status_type = 1; // Success
-            ctx->status_timeout = 60;
-            ui_form_cleanup(ctx);
-            ctx->current_state = UI_STATE_ROOMS;
-            ctx->app_state = STATE_CONTENT_LIST;
-            ctx->needs_redraw = true;
-            return NAV_BACK;
-        }
-    }
-
-    // Cancel
-    if (key == 27) // ESC
-    {
-        ui_form_cleanup(ctx);
-        ctx->current_state = UI_STATE_ROOMS;
-        ctx->app_state = STATE_CONTENT_LIST;
-        ctx->needs_redraw = true;
-        return NAV_BACK;
-    }
-
+    // Return to rooms list
+    ctx->current_state = UI_STATE_ROOMS;
+    ctx->app_state = STATE_CONTENT_LIST;
     ctx->needs_redraw = true;
-    return NAV_NONE;
+    return NAV_BACK;
 }
 
 static void state_cleanup_rooms_add(UIContext *ctx)
@@ -1268,74 +908,14 @@ static void state_draw_reservations(UIContext *ctx)
 
 static NavDirection state_handle_reservations(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-
-    /* Handle sidebar navigation */
-    if (dir == NAV_UP || dir == NAV_DOWN)
-    {
-        if (dir == NAV_UP && ctx->selected_menu_item > 0)
-        {
-            ctx->selected_menu_item--;
-        }
-        else if (dir == NAV_DOWN && ctx->selected_menu_item < 6)
-        {
-            ctx->selected_menu_item++;
-        }
-        ctx->needs_redraw = true;
-        return NAV_NONE;
-    }
-
-    /* Handle list navigation */
-    if (key == KEY_UP && ctx->selected_list_item > 0)
-    {
-        ctx->selected_list_item--;
-        if (ctx->selected_list_item < ctx->scroll_offset)
-        {
-            ctx->scroll_offset = ctx->selected_list_item;
-        }
-        ctx->needs_redraw = true;
-    }
-    else if (key == KEY_DOWN && ctx->selected_list_item < ctx->reservations_count - 1)
-    {
-        ctx->selected_list_item++;
-        if (ctx->selected_list_item >= ctx->scroll_offset + ctx->max_visible_items)
-        {
-            ctx->scroll_offset = ctx->selected_list_item - ctx->max_visible_items + 1;
-        }
-        ctx->needs_redraw = true;
-    }
-
-    /* Handle actions */
-    if (key == 'a' || key == 'A')
-    {
-        ctx->current_state = UI_STATE_RESERVATIONS_ADD;
-        ctx->needs_redraw = true;
-    }
-    else if (key == 'e' || key == 'E')
-    {
-        if (ctx->selected_list_item < ctx->reservations_count)
-        {
-            ctx->current_state = UI_STATE_RESERVATIONS_EDIT;
-            ctx->needs_redraw = true;
-        }
-    }
-    else if (key == 'c' || key == 'C')
-    {
-        if (ctx->selected_list_item < ctx->reservations_count)
-        {
-            /* Cancel reservation - khas dialog dyal confirmation */
-            ctx->needs_redraw = true;
-        }
-    }
-    else if (dir == NAV_BACK)
-    {
-        ctx->current_state = UI_STATE_DASHBOARD;
-        ctx->selected_menu_item = 0;
-        ctx->needs_redraw = true;
-    }
-
-    return dir;
+    return (NavDirection)handle_reservations_input(ctx, key);
 }
+
+
+
+
+
+
 
 static void state_cleanup_reservations(UIContext *ctx)
 {
@@ -1344,25 +924,31 @@ static void state_cleanup_reservations(UIContext *ctx)
 
 static void state_draw_reservations_add(UIContext *ctx)
 {
+    // Draw header and sidebar
     Layout layout;
     ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
-
     ui_draw_header(ctx, &layout);
     ui_draw_sidebar(ctx, &layout);
-    ui_draw_reservations_add(ctx, &layout);
     ui_draw_footer(ctx, &layout);
-    ui_draw_status_message(ctx, &layout);
+
+    // Call the modal only when entering the state
+    if (ctx->current_state != ctx->previous_state)
+    {
+        show_reservation_wizard(ctx->chambres, ctx->chambres_count,
+                                ctx->reservations, &ctx->reservations_count,
+                                ctx->clients, ctx->clients_count);
+        // After modal, return to reservations list
+        ctx->current_state = UI_STATE_RESERVATIONS;
+        ctx->app_state = STATE_CONTENT_LIST;
+        ctx->needs_redraw = true;
+    }
 }
 
 static NavDirection state_handle_reservations_add(UIContext *ctx, int key)
 {
-    NavDirection dir = ui_input_process_key(ctx, key);
-    if (dir == NAV_BACK || key == 27)
-    {
-        ctx->current_state = UI_STATE_RESERVATIONS;
-        ctx->needs_redraw = true;
-    }
-    return dir;
+    (void)key; /* Unused parameter */
+    // Modal is handled in draw function
+    return NAV_NONE;
 }
 
 static void state_cleanup_reservations_add(UIContext *ctx)
@@ -1460,6 +1046,12 @@ static NavDirection state_handle_help(UIContext *ctx, int key)
 static void state_cleanup_help(UIContext *ctx)
 {
     (void)ctx;
+}
+
+static bool is_form_state(UIState state)
+{
+    return state == UI_STATE_CLIENTS_ADD || state == UI_STATE_CLIENTS_EDIT || state == UI_STATE_CLIENTS_SEARCH ||
+           state == UI_STATE_ROOMS_ADD || state == UI_STATE_RESERVATIONS_ADD || state == UI_STATE_BILLING_CREATE;
 }
 
 /* Main UI functions */
@@ -1584,28 +1176,44 @@ void ui_run(UIContext *ctx)
         /* Kan7sbo layout */
         ui_layout_calculate(&layout, ctx->term_rows, ctx->term_cols);
 
-        /* Kan-drawiw state l-haliya */
+        /* Double Buffered Drawing */
         if (ctx->needs_redraw || ctx->current_state != ctx->previous_state)
         {
-            clear();
-
             UIState state = ctx->current_state;
             if (state == UI_STATE_HELP && ctx->previous_state != UI_STATE_HELP)
             {
                 g_help_return_state = ctx->previous_state;
             }
+
+            /* Only clear if NOT a modal/form (preserves background) */
+            if (!is_form_state(state))
+            {
+                erase();
+            }
+
+            /* ISOLATION: Do NOT draw dashboard if in a modal state */
+            /* The state_handlers[state].draw() handles specific drawing */
+            /* If we are in a form state, we assume the background is already there from previous draw */
+
             if (state < UI_STATE_COUNT && state_handlers[state].draw)
             {
                 state_handlers[state].draw(ctx);
             }
 
-            refresh();
+            /* Add Footer/Guides (Context Aware) */
+            ui_draw_footer(ctx, &layout); 
+            
+            /* Double Buffer Swap */
+            wnoutrefresh(stdscr);
+            doupdate();
+
             ctx->needs_redraw = false;
             ctx->previous_state = ctx->current_state;
         }
 
-        /* Kan-traitiw input */
+        /* Blocking Input - Zero CPU usage */
         int key = ui_input_get_key();
+
         if (key != ERR)
         {
             /* First handle app state navigation */
@@ -1629,9 +1237,6 @@ void ui_run(UIContext *ctx)
                 g_running = false;
             }
         }
-
-        /* Delay sghira bach ma ytl3ch CPU */
-        napms(50); /* 50ms = ~20 FPS */
     }
 
     /* Kan-sauvgiw data 9bel ma nkhrjo */

@@ -75,7 +75,7 @@ void ui_draw_sidebar(UIContext *ctx, Layout *layout)
 
     /* Draw menu items */
     int start_y = y + 2;
-    for (int i = 0; i < SIDEBAR_MENU_COUNT && i < h - 4; i++)
+    for (int i = 0; i < (int)SIDEBAR_MENU_COUNT && i < h - 4; i++)
     {
         int item_y = start_y + i;
         bool selected = (ctx->selected_menu_item == i);

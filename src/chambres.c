@@ -89,270 +89,67 @@ int valider_chambre(const Chambre *chambre, const Chambre chambres[], int count,
     return 1; // L-chambre valide
 }
 
-void ajouter_chambre(Chambre chambres[], int *count) {
-    Chambre nouvelle_chambre;
-    int numero_saisi;
-    int numero_unique = 0;
-    
-    LOG_INFO("Début de l'ajout d'une nouvelle chambre");
-    
-    // N-checkiw ila kan 3endo l-space f l-array
+/* ============================================================================
+ * CRUD OPERATIONS (PURE LOGIC)
+ * ============================================================================ */
+
+int chambre_ajouter(Chambre *chambres, int *count, const Chambre *nouvelle_chambre) {
     if (*count >= MAX_CHAMBRES) {
-        LOG_ERROR("Limite de chambres atteinte (%d)", MAX_CHAMBRES);
-        printf("\nErreur: Limite de chambres atteinte (%d). Ajout impossible.\n", MAX_CHAMBRES);
-        return;
+        LOG_ERROR("Erreur: Limite de chambres atteinte (%d)", MAX_CHAMBRES);
+        return -1; // Full
     }
     
-    printf("\n--- AJOUT D'UNE NOUVELLE CHAMBRE ---\n");
-    
-    // Kan-demandiw l-numéro w kan-vérifiiw ila kan unique
-    do {
-        numero_saisi = safe_input_int("Entrez le numero de chambre (1-9999, doit etre unique): ");
-        LOG_DEBUG("Numéro de chambre saisi: %d", numero_saisi);
-        
-        if (numero_saisi < MIN_ROOM_NUMBER || numero_saisi > MAX_ROOM_NUMBER) {
-            printf("Erreur: Le numero doit etre entre %d et %d.\n", MIN_ROOM_NUMBER, MAX_ROOM_NUMBER);
-            LOG_ERROR("Numéro hors limites: %d", numero_saisi);
-            continue;
-        }
-        
-        // Hna kan-checkiw ila l-numéro deja kayn
-        if (chambre_numero_existe(chambres, *count, numero_saisi)) {
-            printf("Erreur: Le numero %d existe deja. Veuillez choisir un autre numero.\n", numero_saisi);
-            LOG_ERROR("Numéro de chambre dupliqué: %d", numero_saisi);
-            numero_unique = 0;
-        } else {
-            numero_unique = 1;
-            nouvelle_chambre.numero = numero_saisi;
-            LOG_DEBUG("Numéro de chambre valide: %d", numero_saisi);
-        }
-    } while (!numero_unique);
-    
-    // Kan-demandiw l-type dyal l-chambre
-    safe_input_string("Entrez le type de chambre (ex: Simple, Double, Suite): ", nouvelle_chambre.type, MAX_TYPE_LENGTH);
-    LOG_DEBUG("Type de chambre: %s", nouvelle_chambre.type);
-    
-    // Kan-demandiw l-prix par nuit
-    nouvelle_chambre.prix = safe_input_float("Entrez le prix par nuit (EUR): ");
-    LOG_DEBUG("Prix saisi: %.2f", nouvelle_chambre.prix);
-    
-    if (nouvelle_chambre.prix < MIN_PRICE || nouvelle_chambre.prix > MAX_PRICE) {
-        printf("Erreur: Prix invalide (doit etre entre %.0f et %.0f EUR).\n", MIN_PRICE, MAX_PRICE);
-        LOG_ERROR("Prix hors limites: %.2f", nouvelle_chambre.prix);
-        return;
+    // Validate the new room
+    if (!valider_chambre(nouvelle_chambre, chambres, *count, -1)) {
+        return -2; // Invalid data
     }
-    
-    // L-chambres jdad kaynin par défaut
-    nouvelle_chambre.disponible = 1;
-    
-    // Validation finale dyal ga3 les données
-    if (!valider_chambre(&nouvelle_chambre, chambres, *count, -1)) {
-        printf("Erreur: Donnees de chambre invalides.\n");
-        return;
-    }
-    
-    // Kan-ajoutiw l-chambre l-array
-    chambres[*count] = nouvelle_chambre;
+
+    // Add to array
+    chambres[*count] = *nouvelle_chambre;
     (*count)++;
-    
-    LOG_INFO("Chambre ajoutée avec succès: #%d %s (%.2f EUR)", 
-             nouvelle_chambre.numero, nouvelle_chambre.type, nouvelle_chambre.prix);
-    
-    // Kan-sauvegardiw direct
+
+    // Persist
     sauvegarder_chambres(chambres, *count);
-    
-    printf("Chambre %d (%s) ajoutee et sauvegardee avec succes.\n",
-           nouvelle_chambre.numero, nouvelle_chambre.type);
+    LOG_INFO("Chambre ajoutée: #%d %s", nouvelle_chambre->numero, nouvelle_chambre->type);
+    return 0; // Success
 }
 
-void afficher_chambres(const Chambre chambres[], int count) {
-    // N-checkiw ila kan 3endo chi chambre
-    if (count == 0) {
-        printf("\n--- AUCUNE CHAMBRE ENREGISTREE ---\n");
-        return;
+int chambre_modifier(Chambre *chambres, int count, const Chambre *modifiee) {
+    int index = trouver_chambre_par_numero(chambres, count, modifiee->numero);
+    if (index == -1) {
+        return -1; // Not found
     }
 
-    // Hna kan-affichiw l-header dyal l-tableau
-    printf("\n======================================================================================\n");
-    printf("  LISTE DES CHAMBRES ACTUELLES (%d)\n", count);
-    printf("======================================================================================\n");
-    printf("| Numero | Type | Prix/Nuit | Disponibilite\n");
-    printf("--------------------------------------------------------------------------------------\n");
+    // Validate using the index to exclude itself from uniqueness checks if number changed (which it shouldn't here, but good practice)
+    // Note: Usually primary key (numero) shouldn't change in update. Assuming 'modifiee' has the same 'numero'.
+    if (!valider_chambre(modifiee, chambres, count, index)) {
+        return -2; // Invalid data
+    }
 
-    // Kan-loopiw 3la ga3 les chambres w kan-affichiwhom
-    for (int i = 0; i < count; i++) {
-        printf("| %-7d | %-15s | %-9.2f | %-13s\n",
-               chambres[i].numero,
-               chambres[i].type,
-               chambres[i].prix,
-               chambres[i].disponible ? "Disponible" : "Occupee");
-    }
-    printf("======================================================================================\n");
-}
+    // Update
+    chambres[index] = *modifiee;
 
-void modifier_chambre(Chambre chambres[], int count) {
-    int numero_a_modifier;
-    int index_chambre = -1;
-    
-    LOG_INFO("Début de la modification d'une chambre");
-    
-    printf("\n--- MODIFICATION D'UNE CHAMBRE ---\n");
-    numero_a_modifier = safe_input_int("Entrez le numero de la chambre a modifier: ");
-    LOG_DEBUG("Numéro à modifier: %d", numero_a_modifier);
-    
-    // Kan-cherchiw l-chambre
-    index_chambre = trouver_chambre_par_numero(chambres, count, numero_a_modifier);
-    
-    if (index_chambre == -1) {
-        LOG_ERROR("Chambre non trouvée pour modification: %d", numero_a_modifier);
-        printf("Erreur: Chambre numero %d non trouvee.\n", numero_a_modifier);
-        return;
-    }
-    
-    printf("\nChambre selectionnee: Numero %d | Type: %s | Prix: %.2f EUR | Disponible: %s\n",
-           chambres[index_chambre].numero,
-           chambres[index_chambre].type,
-           chambres[index_chambre].prix,
-           chambres[index_chambre].disponible ? "Oui" : "Non");
-    
-    int choix;
-    printf("\nQue voulez-vous modifier ? (1: Type, 2: Prix, 3: Disponibilite): ");
-    choix = safe_input_int("");
-    
-    // Kan-switchiw 3la l-choix dyal l-user
-    switch (choix) {
-        case 1: {
-            // Modification dyal type
-            char nouveau_type[MAX_TYPE_LENGTH];
-            safe_input_string("Nouveau type (actuel: %s): ", nouveau_type, MAX_TYPE_LENGTH);
-            strncpy(chambres[index_chambre].type, nouveau_type, sizeof(chambres[index_chambre].type) - 1);
-            chambres[index_chambre].type[sizeof(chambres[index_chambre].type) - 1] = '\0';
-            break;
-        }
-        
-        case 2: {
-            // Modification dyal prix
-            float nouveau_prix;
-            nouveau_prix = safe_input_float("Nouveau prix par nuit (actuel: %.2f EUR): ");
-            if (nouveau_prix < MIN_PRICE || nouveau_prix > MAX_PRICE) {
-                printf("Erreur: Prix invalide (doit etre entre %.0f et %.0f EUR).\n", MIN_PRICE, MAX_PRICE);
-                return;
-            }
-            chambres[index_chambre].prix = nouveau_prix;
-            break;
-        }
-        
-        case 3: {
-            // Modification dyal disponibilité
-            int nouvelle_dispo;
-            do {
-                nouvelle_dispo = safe_input_int("Disponibilite (1=Disponible, 0=Non disponible, actuel: %d): ");
-                if (nouvelle_dispo != 0 && nouvelle_dispo != 1) {
-                    printf("Erreur: Valeur invalide (doit etre 0 ou 1).\n");
-                }
-            } while (nouvelle_dispo != 0 && nouvelle_dispo != 1);
-            chambres[index_chambre].disponible = nouvelle_dispo;
-            break;
-        }
-        
-        default:
-            LOG_ERROR("Choix invalide: %d", choix);
-            printf("Choix invalide. Aucune modification effectuee.\n");
-            return;
-    }
-    
-    // N-validiw l-chambre moudifiée
-    if (!valider_chambre(&chambres[index_chambre], chambres, count, index_chambre)) {
-        LOG_ERROR("Données invalides après modification");
-        printf("Erreur: Donnees invalides apres modification. Modification annulee.\n");
-        return;
-    }
-    
-    // Kan-sauvegardiw les modifications
-    LOG_INFO("Chambre %d modifiée avec succès", numero_a_modifier);
+    // Persist
     sauvegarder_chambres(chambres, count);
-    printf("\nChambre %d modifiee et sauvegardee avec succes.\n", numero_a_modifier);
+    LOG_INFO("Chambre modifiée: #%d", modifiee->numero);
+    return 0;
 }
 
-void supprimer_chambre(Chambre chambres[], int *count) {
-    int numero_a_supprimer;
-    int index_chambre = -1;
-    
-    LOG_INFO("Début de la suppression d'une chambre");
-    
-    printf("\n--- SUPPRESSION D'UNE CHAMBRE ---\n");
-    numero_a_supprimer = safe_input_int("Entrez le numero de la chambre a supprimer: ");
-    LOG_DEBUG("Numéro à supprimer: %d", numero_a_supprimer);
-    
-    // Kan-cherchiw l-chambre
-    index_chambre = trouver_chambre_par_numero(chambres, *count, numero_a_supprimer);
-    
-    if (index_chambre == -1) {
-        LOG_ERROR("Chambre non trouvée pour suppression: %d", numero_a_supprimer);
-        printf("Erreur: Chambre numero %d non trouvee.\n", numero_a_supprimer);
-        return;
+int chambre_supprimer(Chambre *chambres, int *count, int numero) {
+    int index = trouver_chambre_par_numero(chambres, *count, numero);
+    if (index == -1) {
+        return -1; // Not found
     }
-    
-    // Kan-demandiw l-confirmation
-    printf("\nConfirmez-vous la suppression de la chambre numero %d, Type: %s ? (o/n): ",
-           chambres[index_chambre].numero, chambres[index_chambre].type);
-    
-    int confirmation = safe_input_yes_no("");
-    
-    if (!confirmation) {
-        LOG_INFO("Suppression annulée par l'utilisateur: %d", numero_a_supprimer);
-        printf("Suppression annulee.\n");
-        return;
-    }
-    
-    // Kan-supprimiw l-chambre mn l-array b shifting
-    for (int i = index_chambre; i < (*count) - 1; i++) {
+
+    // Shift remaining
+    for (int i = index; i < (*count) - 1; i++) {
         chambres[i] = chambres[i + 1];
     }
-    
     (*count)--;
-    
-    // Kan-sauvegardiw les modifications
-    LOG_INFO("Chambre %d supprimée avec succès", numero_a_supprimer);
-    sauvegarder_chambres(chambres, *count);
-    printf("\nChambre %d supprimee et sauvegarde avec succes.\n", numero_a_supprimer);
-}
 
-void rechercher_chambre(const Chambre chambres[], int count) {
-    char recherche[50];
-    int trouve = 0;
-    
-    LOG_INFO("Début de la recherche de chambre");
-    
-    printf("\n--- RECHERCHE DE CHAMBRE ---\n");
-    safe_input_string("Entrez le numero ou le type de chambre a rechercher: ", recherche, sizeof(recherche));
-    LOG_DEBUG("Terme recherché: %s", recherche);
-    
-    printf("\nResultats pour '%s':\n", recherche);
-    printf("------------------------------------------------------\n");
-    
-    // Kan-loopiw 3la ga3 les chambres w kan-recherchiw
-    for (int i = 0; i < count; i++) {
-        char numero_str[16];
-        snprintf(numero_str, sizeof(numero_str), "%d", chambres[i].numero);
-        
-        // N-checkiw ila l-kalma kayna f numero ola type
-        if (strstr(numero_str, recherche) != NULL ||
-            strstr(chambres[i].type, recherche) != NULL) {
-            
-            printf("Numero: %d | Type: %s | Prix: %.2f EUR | Disponible: %s\n",
-                   chambres[i].numero,
-                   chambres[i].type,
-                   chambres[i].prix,
-                   chambres[i].disponible ? "Oui" : "Non");
-            trouve = 1;
-        }
-    }
-    
-    if (!trouve) {
-        printf("Aucune chambre trouvee pour '%s'.\n", recherche);
-        LOG_INFO("Aucune chambre trouvée pour: %s", recherche);
-    }
-    printf("------------------------------------------------------\n");
+    // Persist
+    sauvegarder_chambres(chambres, *count);
+    LOG_INFO("Chambre supprimée: #%d", numero);
+    return 0;
 }
 

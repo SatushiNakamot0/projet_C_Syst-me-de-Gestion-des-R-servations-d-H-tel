@@ -26,5 +26,9 @@ void ui_input_process_form_input(UIContext *ctx, int key);
 /* Get non-blocking input */
 int ui_input_get_key(void);
 
-#endif /* UI_INPUT_H */
+/* Reads string input safely with visual feedback
+ * Returns: 1 on Enter, 0 on ESC/Cancel
+ */
+int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len);
 
+#endif /* UI_INPUT_H */

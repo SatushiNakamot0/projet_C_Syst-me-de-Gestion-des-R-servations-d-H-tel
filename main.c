@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "ui/ui.h"
 #include "ui/ui_state.h"
+#include "ui/ui_login.h"
 #include "include/debug.h"
 #include "include/data_init.h"
 
@@ -43,6 +44,14 @@ int main(void)
 
     LOG_INFO("Application started");
     
+    /* Show Login Screen */
+    if (!show_login_screen(ctx)) {
+        LOG_INFO("Login cancelled/failed. Exiting.");
+        ui_cleanup(ctx);
+        ui_context_destroy(ctx);
+        return EXIT_SUCCESS;
+    }
+
     /* Kan-chghlou l-loop l-kbir dyal l-app */
     ui_run(ctx);
     

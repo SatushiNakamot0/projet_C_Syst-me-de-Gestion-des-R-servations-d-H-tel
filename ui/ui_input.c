@@ -13,8 +13,8 @@ void ui_input_init(void)
 {
     /* Enable keypad for special keys */
     keypad(stdscr, TRUE);
-    /* Enable non-blocking input */
-    nodelay(stdscr, TRUE);
+    /* Enable blocking input - prevents CPU spin */
+    nodelay(stdscr, FALSE);
     /* Don't echo input */
     noecho();
     /* Enable function keys */
@@ -46,6 +46,71 @@ NavDirection ui_input_arrow_to_direction(int key)
         return NAV_RIGHT;
     default:
         return NAV_NONE;
+    }
+}
+
+/* Reads string input safely with visual feedback
+ * Returns: 1 on Enter, 0 on ESC/Cancel
+ */
+int ui_read_line(WINDOW *win, int y, int x, char *buffer, int max_len)
+{
+    if (!win || !buffer || max_len <= 0)
+        return 0;
+
+    int len = strlen(buffer);
+    int cursor_pos = len;
+
+    // Display initial buffer
+    mvwprintw(win, y, x, "%s", buffer);
+    wmove(win, y, x + cursor_pos);
+    wrefresh(win);
+
+    while (1)
+    {
+        int ch = wgetch(win);
+
+        if (ch == '\n' || ch == KEY_ENTER)
+        {
+            buffer[len] = '\0'; // Ensure null termination
+            return 1;           // Success
+        }
+        else if (ch == 27) // ESC
+        {
+            return 0; // Cancel
+        }
+        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8)
+        {
+            if (cursor_pos > 0)
+            {
+                // Shift characters left
+                memmove(&buffer[cursor_pos - 1], &buffer[cursor_pos], len - cursor_pos + 1);
+                cursor_pos--;
+                len--;
+            }
+        }
+        else if (ch == KEY_LEFT)
+        {
+            if (cursor_pos > 0)
+                cursor_pos--;
+        }
+        else if (ch == KEY_RIGHT)
+        {
+            if (cursor_pos < len)
+                cursor_pos++;
+        }
+        else if (ch >= 32 && ch <= 126 && len < max_len - 1)
+        {
+            // Insert character
+            memmove(&buffer[cursor_pos + 1], &buffer[cursor_pos], len - cursor_pos + 1);
+            buffer[cursor_pos] = (char)ch;
+            cursor_pos++;
+            len++;
+        }
+
+        // Redraw the line
+        mvwprintw(win, y, x, "%-*s", max_len - 1, buffer);
+        wmove(win, y, x + cursor_pos);
+        wrefresh(win);
     }
 }
 

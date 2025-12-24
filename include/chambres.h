@@ -10,20 +10,14 @@
  * Follows the same pattern as clients.c for consistency.
  * ============================================================================ */
 
-/* Add a new room - validates room number uniqueness */
-void ajouter_chambre(Chambre chambres[], int *count);
+/* Add a new room - returns 0 on success, <0 on failure */
+int chambre_ajouter(Chambre *chambres, int *count, const Chambre *nouvelle_chambre);
 
-/* Display all rooms in a formatted table */
-void afficher_chambres(const Chambre chambres[], int count);
+/* Modify an existing room - returns 0 on success, <0 on failure */
+int chambre_modifier(Chambre *chambres, int count, const Chambre *modifiee);
 
-/* Modify an existing room by room number */
-void modifier_chambre(Chambre chambres[], int count);
-
-/* Delete a room by room number with confirmation */
-void supprimer_chambre(Chambre chambres[], int *count);
-
-/* Search rooms by type or number */
-void rechercher_chambre(const Chambre chambres[], int count);
+/* Delete a room by room number - returns 0 on success, <0 on failure */
+int chambre_supprimer(Chambre *chambres, int *count, int numero);
 
 /* Find room by number - returns index or -1 if not found */
 int trouver_chambre_par_numero(const Chambre chambres[], int count, int numero);

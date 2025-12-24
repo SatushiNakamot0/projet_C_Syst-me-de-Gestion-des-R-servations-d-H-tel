@@ -10,23 +10,14 @@
  * and automatic amount calculation. Prevents overlapping bookings.
  * ============================================================================ */
 
-/* Add a new reservation with conflict checking */
-void ajouter_reservation(Reservation reservations[], int *count,
-                        const Client clients[], int clients_count,
-                        const Chambre chambres[], int chambres_count);
+/* Add a new reservation - returns 0 on success, <0 on failure */
+int reservation_ajouter(Reservation *reservations, int *count, const Reservation *input_res, const Chambre *chambres, int chambres_count);
 
-/* Display all reservations in a formatted table */
-void afficher_reservations(const Reservation reservations[], int count,
-                          const Client clients[], int clients_count,
-                          const Chambre chambres[], int chambres_count);
+/* Modify an existing reservation - returns 0 on success, <0 on failure */
+int reservation_modifier(Reservation *reservations, int count, const Reservation *input_res, const Chambre *chambres, int chambres_count);
 
-/* Modify an existing reservation */
-void modifier_reservation(Reservation reservations[], int *count,
-                         const Client clients[], int clients_count,
-                         const Chambre chambres[], int chambres_count);
-
-/* Cancel a reservation (soft delete) */
-void annuler_reservation(Reservation reservations[], int *count);
+/* Cancel a reservation - returns 0 on success, <0 on failure */
+int reservation_annuler(Reservation *reservations, int *count, int id);
 
 /* Check if room is available for given date range */
 int chambre_disponible_dates(const Reservation reservations[], int count,

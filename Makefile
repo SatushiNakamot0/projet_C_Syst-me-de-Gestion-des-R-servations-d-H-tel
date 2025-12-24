@@ -23,7 +23,11 @@ SRCS = main.c \
        $(UI_DIR)/ui_input.c \
        $(UI_DIR)/ui_components.c \
        $(UI_DIR)/ui_redraw.c \
-       $(UI_DIR)/ui_form.c
+       $(UI_DIR)/ui_form.c \
+       $(UI_DIR)/ui_reservations.c \
+       $(UI_DIR)/ui_clients.c \
+       $(UI_DIR)/ui_rooms.c \
+       $(UI_DIR)/ui_login.c
 
 # Object files
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
