@@ -9,7 +9,7 @@
 int auth_login(const char *username, const char *password, char *role_out)
 {
     FILE *f = fopen(USERS_FILE, "rb");
-    if (!f) return 0; // No users yet
+    if (!f) return 0; // Mazal ma kaynin users
 
     User u;
     while (fread(&u, sizeof(User), 1, f) == 1)
@@ -28,7 +28,7 @@ int auth_login(const char *username, const char *password, char *role_out)
 
 int auth_register(const char *username, const char *password, const char *role)
 {
-    // Check if user exists
+    // Nchoufou wach had user deja kayn
     FILE *f = fopen(USERS_FILE, "rb");
     if (f)
     {
@@ -45,12 +45,11 @@ int auth_register(const char *username, const char *password, const char *role)
         fclose(f);
     }
 
-    // Append new user
+    // Nzidom user jdid l fichier
     f = fopen(USERS_FILE, "ab"); // Append binary
     if (!f) {
-        // Try creating? "ab" creates if not exists.
-        // Maybe directory missing?
-        // Assuming data dir exists (handled by app init)
+        // Ymken l-directory khawya wala ma kayench
+        // 3adi, supposons bli data directory kayna deja
         LOG_ERROR("Failed to open users file for writing");
         return 0;
     }
@@ -60,7 +59,7 @@ int auth_register(const char *username, const char *password, const char *role)
     strncpy(new_user.password, password, 49);
     strncpy(new_user.role, role, 19);
     
-    // Ensure null termination
+    // Nta2kadou bli khetmna b null
     new_user.username[49] = '\0';
     new_user.password[49] = '\0';
     new_user.role[19] = '\0';

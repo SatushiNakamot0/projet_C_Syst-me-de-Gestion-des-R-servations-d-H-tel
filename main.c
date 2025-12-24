@@ -7,9 +7,9 @@
 #include "include/data_init.h"
 
 /* ============================================================================
- * MAIN ENTRY POINT
+ * POINT DYAL D-DKHAL L-PROGRAM
  * ============================================================================
- * Hna kan-initializiw l-TUI system w kan-chghlou l-loop dyal l-application.
+ * Hna ghadi nbdaw l-TUI system w n7llo l-loop l-kbira dyal l-application.
  * ============================================================================ */
 
 int main(void)
@@ -22,20 +22,20 @@ int main(void)
     (void)log_init(&log_cfg);
     atexit(log_shutdown);
 
-    /* Initialize data directory structure */
+    /* Nbdaw b tkhli9 dossier dyal data */
     if (!init_data_directory()) {
         LOG_ERROR("Failed to initialize data directory");
         return EXIT_FAILURE;
     }
 
-    /* Kan-creyiw UI context */
+    /* N3mlou UI context bash nkhedmo biha */
     UIContext *ctx = ui_context_create();
     if (!ctx) {
         LOG_ERROR("Failed to create UI context");
         return EXIT_FAILURE;
     }
     
-    /* Kan-initializiw l-UI */
+    /* Nbdaw l-UI w kolchi dyalha */
     if (!ui_init(ctx)) {
         LOG_ERROR("Failed to initialize UI");
         ui_context_destroy(ctx);
@@ -44,7 +44,7 @@ int main(void)
 
     LOG_INFO("Application started");
     
-    /* Show Login Screen */
+    /* Nwriw l-page dyal login lwla */
     if (!show_login_screen(ctx)) {
         LOG_INFO("Login cancelled/failed. Exiting.");
         ui_cleanup(ctx);
@@ -52,10 +52,10 @@ int main(void)
         return EXIT_SUCCESS;
     }
 
-    /* Kan-chghlou l-loop l-kbir dyal l-app */
+    /* Bdina l-loop l-kbira li ghadi t3awed kolchi */
     ui_run(ctx);
     
-    /* Kan-nqaydo w kan-nsddo kolchi b nddaaf */
+    /* Nsaliw w n7llo kolchi b nda9a */
     ui_cleanup(ctx);
     ui_context_destroy(ctx);
 

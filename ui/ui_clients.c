@@ -59,11 +59,10 @@ int show_client_search_modal(Client clients[], int clients_count)
         mvwprintw(win, height - 2, 2, "Enter: Search | ESC: Cancel");
         wrefresh(win);
 
-        int ch = getch();
+        int ch = w getch(win);
         if (ch == 27)
         { // ESC
             delwin(win);
-            echo();
             curs_set(0);
             clear();
             return -1;
@@ -79,7 +78,6 @@ int show_client_search_modal(Client clients[], int clients_count)
             }
             // Perform search and show results
             delwin(win);
-            echo();
             curs_set(0);
             clear();
             return show_client_search_results(search_term, clients, clients_count);

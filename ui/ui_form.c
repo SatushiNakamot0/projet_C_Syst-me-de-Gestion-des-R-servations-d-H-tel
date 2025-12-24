@@ -279,7 +279,6 @@ int show_edit_client_form(Client *client, Client clients[], int count)
     WINDOW *form_win = newwin(height, width, start_y, start_x);
     if (!form_win)
     {
-        echo(); // Restore echo on error
         curs_set(0);
         return -1;
     }
@@ -357,7 +356,6 @@ int show_edit_client_form(Client *client, Client clients[], int count)
                 napms(1000); // Brief pause to show message
 
                 delwin(form_win);
-                echo(); // Restore echo
                 curs_set(0);
                 clear(); // Clear screen so previous screen redraws properly
                 return 0;
@@ -433,7 +431,6 @@ int show_edit_client_form(Client *client, Client clients[], int count)
 
     // Cancelled
     delwin(form_win);
-    echo(); // Restore echo
     curs_set(0);
     clear(); // Clear screen for proper return
     return -1;
